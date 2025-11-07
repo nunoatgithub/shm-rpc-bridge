@@ -293,11 +293,8 @@ def print_comparison(size_name: str, message: str, shm_time: float, grpc_time: f
     print(f"\nComparison:")
     if speedup > 1:
         print(f"  gRPC is {speedup:.2f}x faster than SHM-RPC")
-        print(f"  gRPC latency is {shm_latency_us/grpc_latency_us:.2f}x lower")
     else:
         print(f"  SHM-RPC is {1/speedup:.2f}x faster than gRPC")
-        print(f"  SHM-RPC latency is {grpc_latency_us/shm_latency_us:.2f}x lower")
-
 
 # ==============================================================================
 # Main Benchmark
