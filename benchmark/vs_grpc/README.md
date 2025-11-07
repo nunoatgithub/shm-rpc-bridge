@@ -194,109 +194,137 @@ Cleanup complete.
 Testing SMALL messages (15 bytes)
 ======================================================================
 
-[1/2] Running SHM-RPC benchmark...
-      Completed in 5.58 s
+[1/3] Running SHM-RPC benchmark...
+      Completed in 5.51 s
 
-[2/2] Running gRPC benchmark...
-      Completed in 31.90 s
+[2/3] Running gRPC (UDS) benchmark...
+      Completed in 31.96 s
+
+[3/3] Running gRPC (TCP) benchmark...
+      Completed in 34.22 s
 
 ======================================================================
 SMALL MESSAGE (15 bytes)
 ======================================================================
 
 SHM-RPC Bridge:
-  Total time:    5.58 s
-  Throughput:    17.93 K ops/s
-  Avg latency:   55.76 μs/call
+  Total time:    5.51 s
+  Throughput:    18.16 K ops/s
+  Avg latency:   55.07 μs/call
 
 gRPC (Unix Domain Sockets):
-  Total time:    31.90 s
-  Throughput:    3.14 K ops/s
-  Avg latency:   318.96 μs/call
+  Total time:    31.96 s
+  Throughput:    3.13 K ops/s
+  Avg latency:   319.60 μs/call
 
-Comparison:
-  SHM-RPC is 5.72x faster than gRPC
+gRPC (TCP/IP localhost):
+  Total time:    34.22 s
+  Throughput:    2.92 K ops/s
+  Avg latency:   342.16 μs/call
+
+Fastest: SHM-RPC
 
 ======================================================================
 Testing MEDIUM messages (1000 bytes)
 ======================================================================
 
-[1/2] Running SHM-RPC benchmark...
-      Completed in 7.04 s
+[1/3] Running SHM-RPC benchmark...
+      Completed in 6.98 s
 
-[2/2] Running gRPC benchmark...
-      Completed in 32.82 s
+[2/3] Running gRPC (UDS) benchmark...
+      Completed in 32.31 s
+
+[3/3] Running gRPC (TCP) benchmark...
+      Completed in 36.42 s
 
 ======================================================================
 MEDIUM MESSAGE (1000 bytes)
 ======================================================================
 
 SHM-RPC Bridge:
-  Total time:    7.04 s
-  Throughput:    14.21 K ops/s
-  Avg latency:   70.36 μs/call
+  Total time:    6.98 s
+  Throughput:    14.33 K ops/s
+  Avg latency:   69.76 μs/call
 
 gRPC (Unix Domain Sockets):
-  Total time:    32.82 s
-  Throughput:    3.05 K ops/s
-  Avg latency:   328.17 μs/call
+  Total time:    32.31 s
+  Throughput:    3.09 K ops/s
+  Avg latency:   323.15 μs/call
 
-Comparison:
-  SHM-RPC is 4.66x faster than gRPC
+gRPC (TCP/IP localhost):
+  Total time:    36.42 s
+  Throughput:    2.75 K ops/s
+  Avg latency:   364.21 μs/call
+
+Fastest: SHM-RPC
 
 ======================================================================
 Testing BIG messages (10000 bytes)
 ======================================================================
 
-[1/2] Running SHM-RPC benchmark...
-      Completed in 18.19 s
+[1/3] Running SHM-RPC benchmark...
+      Completed in 19.41 s
 
-[2/2] Running gRPC benchmark...
-      Completed in 35.29 s
+[2/3] Running gRPC (UDS) benchmark...
+      Completed in 36.81 s
+
+[3/3] Running gRPC (TCP) benchmark...
+      Completed in 37.57 s
 
 ======================================================================
 BIG MESSAGE (10000 bytes)
 ======================================================================
 
 SHM-RPC Bridge:
-  Total time:    18.19 s
-  Throughput:    5.50 K ops/s
-  Avg latency:   181.93 μs/call
+  Total time:    19.41 s
+  Throughput:    5.15 K ops/s
+  Avg latency:   194.14 μs/call
 
 gRPC (Unix Domain Sockets):
-  Total time:    35.29 s
-  Throughput:    2.83 K ops/s
-  Avg latency:   352.89 μs/call
+  Total time:    36.81 s
+  Throughput:    2.72 K ops/s
+  Avg latency:   368.13 μs/call
 
-Comparison:
-  SHM-RPC is 1.94x faster than gRPC
+gRPC (TCP/IP localhost):
+  Total time:    37.57 s
+  Throughput:    2.66 K ops/s
+  Avg latency:   375.72 μs/call
+
+Fastest: SHM-RPC
 
 ======================================================================
 Testing LARGE messages (60000 bytes)
 ======================================================================
 
-[1/2] Running SHM-RPC benchmark...
-      Completed in 1m 25.86s
+[1/3] Running SHM-RPC benchmark...
+      Completed in 1m 26.86s
 
-[2/2] Running gRPC benchmark...
-      Completed in 49.26 s
+[2/3] Running gRPC (UDS) benchmark...
+      Completed in 47.77 s
+
+[3/3] Running gRPC (TCP) benchmark...
+      Completed in 51.18 s
 
 ======================================================================
 LARGE MESSAGE (60000 bytes)
 ======================================================================
 
 SHM-RPC Bridge:
-  Total time:    1m 25.86s
-  Throughput:    1.16 K ops/s
-  Avg latency:   858.64 μs/call
+  Total time:    1m 26.86s
+  Throughput:    1.15 K ops/s
+  Avg latency:   868.65 μs/call
 
 gRPC (Unix Domain Sockets):
-  Total time:    49.26 s
-  Throughput:    2.03 K ops/s
-  Avg latency:   492.63 μs/call
+  Total time:    47.77 s
+  Throughput:    2.09 K ops/s
+  Avg latency:   477.71 μs/call
 
-Comparison:
-  gRPC is 1.74x faster than SHM-RPC
+gRPC (TCP/IP localhost):
+  Total time:    51.18 s
+  Throughput:    1.95 K ops/s
+  Avg latency:   511.81 μs/call
+
+Fastest: gRPC-UDS
 
 
 ======================================================================
@@ -304,24 +332,24 @@ OVERALL SUMMARY
 ======================================================================
 
 Small (15 bytes):
-  SHM-RPC:  55.76 μs/call
-  gRPC:     318.96 μs/call
-  Winner:   SHM-RPC (5.72x faster)
+  SHM-RPC:    55.07 μs/call
+  gRPC (UDS): 319.60 μs/call
+  gRPC (TCP): 342.16 μs/call
 
 Medium (1000 bytes):
-  SHM-RPC:  70.36 μs/call
-  gRPC:     328.17 μs/call
-  Winner:   SHM-RPC (4.66x faster)
+  SHM-RPC:    69.76 μs/call
+  gRPC (UDS): 323.15 μs/call
+  gRPC (TCP): 364.21 μs/call
 
 Big (10000 bytes):
-  SHM-RPC:  181.93 μs/call
-  gRPC:     352.89 μs/call
-  Winner:   SHM-RPC (1.94x faster)
+  SHM-RPC:    194.14 μs/call
+  gRPC (UDS): 368.13 μs/call
+  gRPC (TCP): 375.72 μs/call
 
 Large (60000 bytes):
-  SHM-RPC:  858.64 μs/call
-  gRPC:     492.63 μs/call
-  Winner:   gRPC (1.74x faster)
+  SHM-RPC:    868.65 μs/call
+  gRPC (UDS): 477.71 μs/call
+  gRPC (TCP): 511.81 μs/call
 
 ======================================================================
 ```
