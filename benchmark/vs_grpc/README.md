@@ -84,32 +84,6 @@ For each message size, the following metrics are displayed:
 - **Avg latency**: Average time per call in microseconds
 - **Comparison**: Which implementation is faster and by how much
 
-## Expected Performance Characteristics
-
-### SHM-RPC Strengths
-- Lower system call overhead (no socket syscalls)
-- Direct memory access via memoryview
-- Efficient for burst workloads
-
-### gRPC Strengths
-- Highly optimized C++ core
-- Efficient protobuf serialization
-- Better for sustained high-frequency calls
-- Industry-standard protocol
-
-### Typical Results
-
-Performance varies by message size and system characteristics:
-
-**Small Messages** (< 100 bytes):
-- gRPC typically faster due to highly optimized implementation
-- SHM-RPC has higher per-call overhead from synchronization
-
-**Large Messages** (> 1KB):
-- Performance gap narrows
-- Serialization becomes dominant factor
-- Both implementations perform similarly
-
 ## Files
 
 - `benchmark_vs_grpc.py` - Main benchmark script
@@ -302,35 +276,10 @@ Large (1000 bytes):
 ======================================================================
 ```
 
-### Key Insights from Results
-
-**SHM-RPC Performance Advantage:**
-- Consistently **3.5x - 4.7x faster** than gRPC across all message sizes
-- Latency advantage is highest for tiny messages (4.70x)
-- Advantage slightly decreases for larger messages (3.57x) but remains significant
-
-**Latency Characteristics:**
-- SHM-RPC: ~114-190 μs/call (scales with message size)
-- gRPC: ~534-680 μs/call (relatively flat across sizes)
-- SHM-RPC shows better scaling with message size
-
 **Why SHM-RPC Outperforms gRPC:**
 1. **No socket overhead**: Direct shared memory access vs Unix socket syscalls
 2. **Simpler protocol**: Less protocol overhead compared to HTTP/2-based gRPC
 3. **Zero-copy I/O**: Memoryview allows direct memory access
 4. **Optimized for local IPC**: Designed specifically for same-host communication
 
-**When to Choose Each:**
-- **SHM-RPC**: When both processes are on the same host and performance is critical
-- **gRPC**: When you need network transparency, cross-language support, or industry-standard tooling
-
-## Interpreting Results
-
-The benchmark helps you understand:
-
-1. **Absolute performance**: How fast can each system deliver messages?
-2. **Relative performance**: Which is faster for your use case?
-3. **Scaling behavior**: How does performance change with message size?
-
-Use these results to decide which RPC mechanism best fits your application's requirements for latency, throughput, and operational complexity.
 
