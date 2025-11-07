@@ -354,10 +354,4 @@ Large (60000 bytes):
 ======================================================================
 ```
 
-**Why SHM-RPC Outperforms gRPC:**
-1. **No socket overhead**: Direct shared memory access vs Unix socket syscalls
-2. **Simpler protocol**: Less protocol overhead compared to HTTP/2-based gRPC
-3. **Zero-copy I/O**: Memoryview allows direct memory access
-4. **Optimized for local IPC**: Designed specifically for same-host communication
-
 
