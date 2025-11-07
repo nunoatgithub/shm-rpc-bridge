@@ -1,16 +1,23 @@
 # SHM-RPC vs gRPC Benchmark
 
-This benchmark compares the performance of the SHM-RPC bridge library against standard gRPC using Unix domain sockets for inter-process communication.
+This benchmark compares the performance of the SHM-RPC bridge library against standard gRPC using different transport methods for inter-process communication.
 
 ## Overview
 
-The benchmark measures the latency and throughput of simple string echo operations across different message sizes:
+The benchmark measures the latency and throughput of simple string echo operations across different message sizes and transport methods:
+
+**Message Sizes:**
 - **Small**: 15 bytes
 - **Medium**: 1KB (1,000 bytes)
 - **Big**: 10KB (10,000 bytes)
 - **Large**: 60KB (60,000 bytes)
 
-Both implementations use **process-to-process** communication (no threading comparison).
+**Transport Methods:**
+- **SHM-RPC**: Shared memory with POSIX semaphores
+- **gRPC (UDS)**: gRPC over Unix domain sockets
+- **gRPC (TCP)**: gRPC over TCP/IP on localhost
+
+All implementations use **process-to-process** communication.
 
 ## Running the Benchmark
 
@@ -60,8 +67,11 @@ The benchmark will:
 1. Clean up any leftover resources (shared memory, Unix sockets)
 2. Test each message size with 100,000 iterations
 3. Run warmup iterations before each test
-4. Display detailed performance metrics
-5. Clean up all resources when complete
+4. Test all three transport methods for each message size
+5. Display detailed performance metrics
+6. Clean up all resources when complete
+
+## What It Tests
 
 ### SHM-RPC Bridge
 - Transport: Shared memory with POSIX semaphores
@@ -69,10 +79,16 @@ The benchmark will:
 - Connection: Named shared memory segments
 - Processes: Separate client and server processes
 
-### gRPC
+### gRPC (Unix Domain Sockets)
 - Transport: Unix domain sockets (UDS)
 - Serialization: Protocol Buffers
 - Connection: Unix socket file (`/tmp/grpc_benchmark.sock`)
+- Processes: Separate client and server processes
+
+### gRPC (TCP/IP)
+- Transport: TCP/IP on localhost
+- Serialization: Protocol Buffers
+- Connection: TCP socket on port 50051
 - Processes: Separate client and server processes
 
 ## Metrics Reported

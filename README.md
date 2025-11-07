@@ -115,7 +115,7 @@ Comparison of direct in-memory calls vs thread-based or process-based use of thi
 
 ### vs gRPC Benchmark
 
-Comparison of this library with gRPC over Unix domain sockets:
+Comparison of this library with gRPC (Unix domain sockets and TCP/IP):
 
 ```bash
 ./benchmark/vs_grpc/run_benchmark.sh

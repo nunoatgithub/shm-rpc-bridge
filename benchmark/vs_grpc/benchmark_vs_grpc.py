@@ -103,6 +103,23 @@ def run_grpc_server(socket_path: str, ready_queue: multiprocessing.Queue) -> Non
         server.stop(0)
 
 
+def run_grpc_tcp_server(port: int, ready_queue: multiprocessing.Queue) -> None:  # type: ignore
+    """Run gRPC server over TCP/IP in a separate process."""
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+    echo_pb2_grpc.add_EchoServiceServicer_to_server(EchoServicer(), server)
+
+    # Use TCP/IP on localhost
+    server.add_insecure_port(f'localhost:{port}')
+    server.start()
+
+    ready_queue.put("ready")
+
+    try:
+        server.wait_for_termination()
+    except KeyboardInterrupt:
+        server.stop(0)
+
+
 def benchmark_grpc(message: str, socket_path: str) -> float:
     """Benchmark gRPC over Unix domain sockets."""
     ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
@@ -156,6 +173,55 @@ def benchmark_grpc(message: str, socket_path: str) -> float:
 
         # Clean up socket
         cleanup_uds_socket(socket_path)
+
+
+def benchmark_grpc_tcp(message: str, port: int = 50051) -> float:
+    """Benchmark gRPC over TCP/IP."""
+    ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
+
+    # Start server process
+    server_process = multiprocessing.Process(
+        target=run_grpc_tcp_server,
+        args=(port, ready_queue),
+    )
+    server_process.start()
+
+    # Wait for server to be ready
+    try:
+        ready_queue.get(timeout=5.0)
+    except Exception as e:
+        server_process.terminate()
+        server_process.join()
+        raise RuntimeError(f"gRPC TCP server failed to start: {e}")
+
+    # Give server a moment to fully initialize
+    time.sleep(0.1)
+
+    try:
+        # Create client channel
+        channel = grpc.insecure_channel(f'localhost:{port}')
+        stub = echo_pb2_grpc.EchoServiceStub(channel)
+
+        # Warm-up
+        for _ in range(100):
+            stub.Echo(echo_pb2.EchoRequest(message=message))
+
+        # Benchmark
+        start = time.perf_counter()
+        for _ in range(NUM_ITERATIONS):
+            response = stub.Echo(echo_pb2.EchoRequest(message=message))
+        end = time.perf_counter()
+
+        channel.close()
+        return end - start
+
+    finally:
+        # Stop server
+        server_process.terminate()
+        server_process.join(timeout=2.0)
+        if server_process.is_alive():
+            server_process.kill()
+            server_process.join()
 
 
 # ==============================================================================
@@ -264,37 +330,53 @@ def format_throughput(ops_per_sec: float) -> str:
         return f"{ops_per_sec:.2f} ops/s"
 
 
-def print_comparison(size_name: str, message: str, shm_time: float, grpc_time: float) -> None:
+def print_comparison(
+    size_name: str,
+    message: str,
+    shm_time: float | None,
+    grpc_uds_time: float | None,
+    grpc_tcp_time: float | None,
+) -> None:
     """Print comparison results for a specific message size."""
-    msg_size = len(message.encode('utf-8'))
-
-    shm_throughput = NUM_ITERATIONS / shm_time
-    grpc_throughput = NUM_ITERATIONS / grpc_time
-
-    shm_latency_us = (shm_time / NUM_ITERATIONS) * 1_000_000
-    grpc_latency_us = (grpc_time / NUM_ITERATIONS) * 1_000_000
-
-    speedup = shm_time / grpc_time
+    msg_size = len(message.encode("utf-8"))
 
     print(f"\n{'='*70}")
     print(f"{size_name.upper()} MESSAGE ({msg_size} bytes)")
     print(f"{'='*70}")
 
-    print(f"\nSHM-RPC Bridge:")
-    print(f"  Total time:    {format_time(shm_time)}")
-    print(f"  Throughput:    {format_throughput(shm_throughput)}")
-    print(f"  Avg latency:   {shm_latency_us:.2f} μs/call")
+    if shm_time:
+        shm_throughput = NUM_ITERATIONS / shm_time
+        shm_latency_us = (shm_time / NUM_ITERATIONS) * 1_000_000
+        print(f"\nSHM-RPC Bridge:")
+        print(f"  Total time:    {format_time(shm_time)}")
+        print(f"  Throughput:    {format_throughput(shm_throughput)}")
+        print(f"  Avg latency:   {shm_latency_us:.2f} μs/call")
 
-    print(f"\ngRPC (Unix Domain Sockets):")
-    print(f"  Total time:    {format_time(grpc_time)}")
-    print(f"  Throughput:    {format_throughput(grpc_throughput)}")
-    print(f"  Avg latency:   {grpc_latency_us:.2f} μs/call")
+    if grpc_uds_time:
+        grpc_uds_throughput = NUM_ITERATIONS / grpc_uds_time
+        grpc_uds_latency_us = (grpc_uds_time / NUM_ITERATIONS) * 1_000_000
+        print(f"\ngRPC (Unix Domain Sockets):")
+        print(f"  Total time:    {format_time(grpc_uds_time)}")
+        print(f"  Throughput:    {format_throughput(grpc_uds_throughput)}")
+        print(f"  Avg latency:   {grpc_uds_latency_us:.2f} μs/call")
 
-    print(f"\nComparison:")
-    if speedup > 1:
-        print(f"  gRPC is {speedup:.2f}x faster than SHM-RPC")
-    else:
-        print(f"  SHM-RPC is {1/speedup:.2f}x faster than gRPC")
+    if grpc_tcp_time:
+        grpc_tcp_throughput = NUM_ITERATIONS / grpc_tcp_time
+        grpc_tcp_latency_us = (grpc_tcp_time / NUM_ITERATIONS) * 1_000_000
+        print(f"\ngRPC (TCP/IP localhost):")
+        print(f"  Total time:    {format_time(grpc_tcp_time)}")
+        print(f"  Throughput:    {format_throughput(grpc_tcp_throughput)}")
+        print(f"  Avg latency:   {grpc_tcp_latency_us:.2f} μs/call")
+
+    # Print comparisons
+    if shm_time and grpc_uds_time and grpc_tcp_time:
+        times = {
+            "SHM-RPC": shm_time,
+            "gRPC-UDS": grpc_uds_time,
+            "gRPC-TCP": grpc_tcp_time,
+        }
+        fastest = min(times, key=times.get)  # type: ignore
+        print(f"\nFastest: {fastest}")
 
 # ==============================================================================
 # Main Benchmark
@@ -302,15 +384,16 @@ def print_comparison(size_name: str, message: str, shm_time: float, grpc_time: f
 
 def main() -> None:
     """Run the benchmark suite."""
-    print("="*70)
+    print("=" * 70)
     print("SHM-RPC Bridge vs gRPC Benchmark")
-    print("="*70)
+    print("=" * 70)
     print(f"Iterations per test: {NUM_ITERATIONS:,}")
     print(f"Communication: Process-to-Process")
     print()
 
     # Paths for temporary resources
     socket_path = "/tmp/grpc_benchmark.sock"
+    tcp_port = 50051
     shm_channel = "shm_benchmark"
 
     # Initial cleanup
@@ -324,11 +407,13 @@ def main() -> None:
     # Run benchmarks for each message size
     for size_name, message in MESSAGE_SIZES.items():
         print(f"\n{'='*70}")
-        print(f"Testing {size_name.upper()} messages ({len(message.encode('utf-8'))} bytes)")
+        print(
+            f"Testing {size_name.upper()} messages ({len(message.encode('utf-8'))} bytes)"
+        )
         print(f"{'='*70}")
 
         # Benchmark SHM-RPC
-        print(f"\n[1/2] Running SHM-RPC benchmark...")
+        print(f"\n[1/3] Running SHM-RPC benchmark...")
         try:
             shm_time = benchmark_shm_rpc(message, shm_channel)
             print(f"      Completed in {format_time(shm_time)}")
@@ -339,22 +424,34 @@ def main() -> None:
         # Small delay between benchmarks
         time.sleep(0.5)
 
-        # Benchmark gRPC
-        print(f"\n[2/2] Running gRPC benchmark...")
+        # Benchmark gRPC UDS
+        print(f"\n[2/3] Running gRPC (UDS) benchmark...")
         try:
-            grpc_time = benchmark_grpc(message, socket_path)
-            print(f"      Completed in {format_time(grpc_time)}")
+            grpc_uds_time = benchmark_grpc(message, socket_path)
+            print(f"      Completed in {format_time(grpc_uds_time)}")
         except Exception as e:
-            print(f"✗ gRPC benchmark failed: {e}")
-            grpc_time = None
+            print(f"✗ gRPC (UDS) benchmark failed: {e}")
+            grpc_uds_time = None
 
-        if shm_time and grpc_time:
-            results[size_name] = {
-                'message': message,
-                'shm_time': shm_time,
-                'grpc_time': grpc_time,
-            }
-            print_comparison(size_name, message, shm_time, grpc_time)
+        # Small delay between benchmarks
+        time.sleep(0.5)
+
+        # Benchmark gRPC TCP
+        print(f"\n[3/3] Running gRPC (TCP) benchmark...")
+        try:
+            grpc_tcp_time = benchmark_grpc_tcp(message, tcp_port)
+            print(f"      Completed in {format_time(grpc_tcp_time)}")
+        except Exception as e:
+            print(f"✗ gRPC (TCP) benchmark failed: {e}")
+            grpc_tcp_time = None
+
+        results[size_name] = {
+            "message": message,
+            "shm_time": shm_time,
+            "grpc_uds_time": grpc_uds_time,
+            "grpc_tcp_time": grpc_tcp_time,
+        }
+        print_comparison(size_name, message, shm_time, grpc_uds_time, grpc_tcp_time)
 
         # Cleanup between tests
         cleanup_shm_resources(shm_channel)
@@ -362,25 +459,27 @@ def main() -> None:
         time.sleep(0.2)
 
     # Overall summary
-    print("\n\n" + "="*70)
+    print("\n\n" + "=" * 70)
     print("OVERALL SUMMARY")
-    print("="*70)
+    print("=" * 70)
 
     for size_name, data in results.items():
-        msg_size = len(data['message'].encode('utf-8'))
-        shm_lat = (data['shm_time'] / NUM_ITERATIONS) * 1_000_000
-        grpc_lat = (data['grpc_time'] / NUM_ITERATIONS) * 1_000_000
-        speedup = data['shm_time'] / data['grpc_time']
-
-        winner = "gRPC" if speedup > 1 else "SHM-RPC"
-        ratio = speedup if speedup > 1 else 1/speedup
-
+        msg_size = len(data["message"].encode("utf-8"))
         print(f"\n{size_name.capitalize()} ({msg_size} bytes):")
-        print(f"  SHM-RPC:  {shm_lat:.2f} μs/call")
-        print(f"  gRPC:     {grpc_lat:.2f} μs/call")
-        print(f"  Winner:   {winner} ({ratio:.2f}x faster)")
 
-    print("\n" + "="*70)
+        if data["shm_time"]:
+            shm_lat = (data["shm_time"] / NUM_ITERATIONS) * 1_000_000
+            print(f"  SHM-RPC:    {shm_lat:.2f} μs/call")
+
+        if data["grpc_uds_time"]:
+            grpc_uds_lat = (data["grpc_uds_time"] / NUM_ITERATIONS) * 1_000_000
+            print(f"  gRPC (UDS): {grpc_uds_lat:.2f} μs/call")
+
+        if data["grpc_tcp_time"]:
+            grpc_tcp_lat = (data["grpc_tcp_time"] / NUM_ITERATIONS) * 1_000_000
+            print(f"  gRPC (TCP): {grpc_tcp_lat:.2f} μs/call")
+
+    print("\n" + "=" * 70)
 
     # Final cleanup
     print("\nFinal cleanup...")
