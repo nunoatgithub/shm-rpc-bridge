@@ -141,8 +141,6 @@ python benchmark/vs_grpc/benchmark_vs_grpc.py
 
 ## Example Benchmark Results
 
-Here's an example run on a typical development machine:
-
 ```
 =======================================================================
 SHM-RPC vs gRPC Benchmark Runner
