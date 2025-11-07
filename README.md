@@ -104,25 +104,25 @@ with RPCClient("my_service") as client:
 
 Comprehensive benchmarks are included to help understand performance characteristics.
 
-### vs gRPC Benchmark
-
-Comparison with industry-standard gRPC over Unix domain sockets:
-
-```bash
-./benchmark/vs_grpc/run_benchmark.sh
-```
-
-📊 [Full benchmark details →](benchmark/vs_grpc/)
-
 ### IPC Implementation Benchmark
 
-Comparison of direct calls vs thread-based vs process-based RPC:
+Comparison of direct in-memory calls vs thread-based or process-based use of this library :
 
 ```bash
 ./benchmark/run_benchmark.sh
 ```
 
 📊 [Full benchmark details →](benchmark/)
+
+### vs gRPC Benchmark
+
+Comparison of this library with gRPC over Unix domain sockets:
+
+```bash
+./benchmark/vs_grpc/run_benchmark.sh
+```
+
+📊 [Full benchmark details →](benchmark/vs_grpc/)
 
 ## API Reference
 
