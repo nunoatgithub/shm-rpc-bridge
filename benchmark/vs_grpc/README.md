@@ -5,10 +5,9 @@ This benchmark compares the performance of the SHM-RPC bridge library against st
 ## Overview
 
 The benchmark measures the latency and throughput of simple string echo operations across different message sizes:
-- **Tiny**: 2 bytes
-- **Small**: 13 bytes  
-- **Medium**: 100 bytes
-- **Large**: 1KB
+- **Small**: 15 bytes
+- **Medium**: 1KB (1,000 bytes)
+- **Large**: 10KB (10,000 bytes)
 
 Both implementations use **process-to-process** communication (no threading comparison).
 
