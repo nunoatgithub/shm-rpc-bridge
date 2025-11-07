@@ -34,7 +34,8 @@ NUM_ITERATIONS = 100_000  # Number of RPC calls to make
 MESSAGE_SIZES = {
     "small": "A" * 15,                               # 15 bytes
     "medium": "B" * 1000,                            # 1KB
-    "large": "C" * 10_000,                           # 10KB
+    "big": "C" * 10_000,                             # 10KB
+    "large": "D" * 60_000,                           # 60KB
 }
 
 
