@@ -57,7 +57,7 @@ echo ""
 # Run the benchmark
 echo "======================================================================="
 echo "Running SHM-RPC vs gRPC benchmark..."
-echo "This will take several minutes (100,000 iterations × 4 message sizes × 2 implementations)"
+echo "This will take several minutes"
 echo "======================================================================="
 echo ""
 
