@@ -69,8 +69,6 @@ For each benchmark, the following metrics are reported:
 
 ## Example Results
 
-Here's an example run on a typical development machine:
-
 ```
 =======================================================================
 SHM-RPC Bridge Benchmark Runner
