@@ -128,6 +128,42 @@ python benchmark/vs_grpc/benchmark_vs_grpc.py
 Here's an example run on a typical development machine:
 
 ```
+=======================================================================
+SHM-RPC vs gRPC Benchmark Runner
+=======================================================================
+
+Python version: 3.8.20
+
+Installing dependencies...
+---
+Installing posix-ipc...
+✓ posix-ipc installed
+Installing grpcio...
+✓ grpcio and grpcio-tools installed
+
+Generating gRPC code from proto file...
+✓ gRPC code generated
+
+Cleaning up any leftover shared memory and socket resources...
+POSIX IPC Cleanup Utility
+============================================================
+
+Cleaning up shared memory segments...
+
+Cleaning up semaphores...
+
+============================================================
+Summary:
+  Shared memory segments: 0 removed, 0 failed
+  Semaphores: 0 removed, 0 failed
+  Total: 0 removed, 0 failed
+✓ Cleanup complete
+
+=======================================================================
+Running SHM-RPC vs gRPC benchmark...
+This will take several minutes
+=======================================================================
+
 ======================================================================
 SHM-RPC Bridge vs gRPC Benchmark
 ======================================================================
@@ -137,141 +173,139 @@ Communication: Process-to-Process
 Cleaning up any leftover resources...
 Cleanup complete.
 
-======================================================================
-Testing TINY messages (2 bytes)
-======================================================================
-
-[1/2] Running SHM-RPC benchmark...
-      Completed in 11.37 s
-
-[2/2] Running gRPC benchmark...
-      Completed in 53.44 s
 
 ======================================================================
-TINY MESSAGE (2 bytes)
-======================================================================
-
-SHM-RPC Bridge:
-  Total time:    11.37 s
-  Throughput:    8.80 K ops/s
-  Avg latency:   113.66 μs/call
-
-gRPC (Unix Domain Sockets):
-  Total time:    53.44 s
-  Throughput:    1.87 K ops/s
-  Avg latency:   534.43 μs/call
-
-Comparison:
-  SHM-RPC is 4.70x faster than gRPC
-  SHM-RPC latency is 4.70x lower
-
-======================================================================
-Testing SMALL messages (13 bytes)
+Testing SMALL messages (15 bytes)
 ======================================================================
 
 [1/2] Running SHM-RPC benchmark...
-      Completed in 13.67 s
+      Completed in 5.58 s
 
 [2/2] Running gRPC benchmark...
-      Completed in 1m 2.58s
+      Completed in 31.90 s
 
 ======================================================================
-SMALL MESSAGE (13 bytes)
+SMALL MESSAGE (15 bytes)
 ======================================================================
 
 SHM-RPC Bridge:
-  Total time:    13.67 s
-  Throughput:    7.31 K ops/s
-  Avg latency:   136.72 μs/call
+  Total time:    5.58 s
+  Throughput:    17.93 K ops/s
+  Avg latency:   55.76 μs/call
 
 gRPC (Unix Domain Sockets):
-  Total time:    1m 2.58s
-  Throughput:    1.60 K ops/s
-  Avg latency:   625.77 μs/call
+  Total time:    31.90 s
+  Throughput:    3.14 K ops/s
+  Avg latency:   318.96 μs/call
 
 Comparison:
-  SHM-RPC is 4.58x faster than gRPC
-  SHM-RPC latency is 4.58x lower
+  SHM-RPC is 5.72x faster than gRPC
 
 ======================================================================
-Testing MEDIUM messages (100 bytes)
+Testing MEDIUM messages (1000 bytes)
 ======================================================================
 
 [1/2] Running SHM-RPC benchmark...
-      Completed in 14.42 s
+      Completed in 7.04 s
 
 [2/2] Running gRPC benchmark...
-      Completed in 1m 3.32s
+      Completed in 32.82 s
 
 ======================================================================
-MEDIUM MESSAGE (100 bytes)
+MEDIUM MESSAGE (1000 bytes)
 ======================================================================
 
 SHM-RPC Bridge:
-  Total time:    14.42 s
-  Throughput:    6.93 K ops/s
-  Avg latency:   144.22 μs/call
+  Total time:    7.04 s
+  Throughput:    14.21 K ops/s
+  Avg latency:   70.36 μs/call
 
 gRPC (Unix Domain Sockets):
-  Total time:    1m 3.32s
-  Throughput:    1.58 K ops/s
-  Avg latency:   633.24 μs/call
+  Total time:    32.82 s
+  Throughput:    3.05 K ops/s
+  Avg latency:   328.17 μs/call
 
 Comparison:
-  SHM-RPC is 4.39x faster than gRPC
-  SHM-RPC latency is 4.39x lower
+  SHM-RPC is 4.66x faster than gRPC
 
 ======================================================================
-Testing LARGE messages (1000 bytes)
+Testing BIG messages (10000 bytes)
 ======================================================================
 
 [1/2] Running SHM-RPC benchmark...
-      Completed in 19.04 s
+      Completed in 18.19 s
 
 [2/2] Running gRPC benchmark...
-      Completed in 1m 8.02s
+      Completed in 35.29 s
 
 ======================================================================
-LARGE MESSAGE (1000 bytes)
+BIG MESSAGE (10000 bytes)
 ======================================================================
 
 SHM-RPC Bridge:
-  Total time:    19.04 s
-  Throughput:    5.25 K ops/s
-  Avg latency:   190.39 μs/call
+  Total time:    18.19 s
+  Throughput:    5.50 K ops/s
+  Avg latency:   181.93 μs/call
 
 gRPC (Unix Domain Sockets):
-  Total time:    1m 8.02s
-  Throughput:    1.47 K ops/s
-  Avg latency:   680.25 μs/call
+  Total time:    35.29 s
+  Throughput:    2.83 K ops/s
+  Avg latency:   352.89 μs/call
 
 Comparison:
-  SHM-RPC is 3.57x faster than gRPC
-  SHM-RPC latency is 3.57x lower
+  SHM-RPC is 1.94x faster than gRPC
+
+======================================================================
+Testing LARGE messages (60000 bytes)
+======================================================================
+
+[1/2] Running SHM-RPC benchmark...
+      Completed in 1m 25.86s
+
+[2/2] Running gRPC benchmark...
+      Completed in 49.26 s
+
+======================================================================
+LARGE MESSAGE (60000 bytes)
+======================================================================
+
+SHM-RPC Bridge:
+  Total time:    1m 25.86s
+  Throughput:    1.16 K ops/s
+  Avg latency:   858.64 μs/call
+
+gRPC (Unix Domain Sockets):
+  Total time:    49.26 s
+  Throughput:    2.03 K ops/s
+  Avg latency:   492.63 μs/call
+
+Comparison:
+  gRPC is 1.74x faster than SHM-RPC
+
 
 ======================================================================
 OVERALL SUMMARY
 ======================================================================
 
-Tiny (2 bytes):
-  SHM-RPC:  113.66 μs/call
-  gRPC:     534.43 μs/call
-  Winner:   SHM-RPC (4.70x faster)
+Small (15 bytes):
+  SHM-RPC:  55.76 μs/call
+  gRPC:     318.96 μs/call
+  Winner:   SHM-RPC (5.72x faster)
 
-Small (13 bytes):
-  SHM-RPC:  136.72 μs/call
-  gRPC:     625.77 μs/call
-  Winner:   SHM-RPC (4.58x faster)
+Medium (1000 bytes):
+  SHM-RPC:  70.36 μs/call
+  gRPC:     328.17 μs/call
+  Winner:   SHM-RPC (4.66x faster)
 
-Medium (100 bytes):
-  SHM-RPC:  144.22 μs/call
-  gRPC:     633.24 μs/call
-  Winner:   SHM-RPC (4.39x faster)
+Big (10000 bytes):
+  SHM-RPC:  181.93 μs/call
+  gRPC:     352.89 μs/call
+  Winner:   SHM-RPC (1.94x faster)
 
-Large (1000 bytes):
-  SHM-RPC:  190.39 μs/call
-  gRPC:     680.25 μs/call
-  Winner:   SHM-RPC (3.57x faster)
+Large (60000 bytes):
+  SHM-RPC:  858.64 μs/call
+  gRPC:     492.63 μs/call
+  Winner:   gRPC (1.74x faster)
 
 ======================================================================
 ```
