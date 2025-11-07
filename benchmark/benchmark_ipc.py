@@ -550,14 +550,6 @@ def main() -> None:
     if process_time:
         print(f"  Processes:        {format_time(process_time)} ({process_time/direct_time:.2f}x)")
 
-    # Comparison
-    if thread_time and process_time:
-        print(f"\n  Thread vs Process: {thread_time/process_time:.2f}x")
-        if thread_time < process_time:
-            print(f"    → Threads are {process_time/thread_time:.2f}x faster")
-        else:
-            print(f"    → Processes are {thread_time/process_time:.2f}x faster")
-
     # ===========================================================================
     # PART 2: Large Messages (complex nested structures)
     # ===========================================================================
@@ -609,14 +601,6 @@ def main() -> None:
         print(f"  Threads:          {format_time(large_thread_time)} ({large_thread_time/large_direct_time:.2f}x)")
     if large_process_time:
         print(f"  Processes:        {format_time(large_process_time)} ({large_process_time/large_direct_time:.2f}x)")
-
-    # Comparison
-    if large_thread_time and large_process_time:
-        print(f"\n  Thread vs Process: {large_thread_time/large_process_time:.2f}x")
-        if large_thread_time < large_process_time:
-            print(f"    → Threads are {large_process_time/large_thread_time:.2f}x faster")
-        else:
-            print(f"    → Processes are {large_thread_time/large_process_time:.2f}x faster")
 
     # ===========================================================================
     # Final Summary
