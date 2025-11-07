@@ -32,10 +32,9 @@ import echo_pb2_grpc
 # Benchmark configuration
 NUM_ITERATIONS = 100_000  # Number of RPC calls to make
 MESSAGE_SIZES = {
-    "tiny": "Hi",                                    # 2 bytes
-    "small": "Hello, World!",                        # 13 bytes
-    "medium": "A" * 100,                             # 100 bytes
-    "large": "B" * 1000,                             # 1KB
+    "small": "A" * 15,                               # 15 bytes
+    "medium": "B" * 1000,                            # 1KB
+    "large": "C" * 10_000,                           # 10KB
 }
 
 
