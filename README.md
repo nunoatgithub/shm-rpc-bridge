@@ -257,7 +257,7 @@ Four POSIX semaphores per channel:
 ## Limitations
 
 - **Same-host only**: Shared memory requires processes on the same machine
-- **POSIX systems**: Requires POSIX shared memory and semaphore support (Linux, macOS, BSD)
+- **POSIX systems**: Requires POSIX semaphore support (Linux, macOS, BSD)
 - **Buffer size**: Messages must fit in configured buffer (default 64KB)
 - **No encryption**: Data in shared memory is not encrypted (same-host trust model)
 - **Single channel**: Each client-server pair uses one channel (no connection pooling)
