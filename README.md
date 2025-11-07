@@ -254,9 +254,6 @@ Four POSIX semaphores per channel:
 - `response_empty`: Counts empty slots in response buffer
 - `response_full`: Counts full slots in response buffer
 
-Producer-consumer pattern ensures thread-safe, lock-free operation.
-
-
 ## Limitations
 
 - **Same-host only**: Shared memory requires processes on the same machine
