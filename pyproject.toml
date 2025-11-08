@@ -26,6 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "posix-ipc>=1.1.0",
+    "orjson>=3.10.0"
 ]
 
 [project.optional-dependencies]

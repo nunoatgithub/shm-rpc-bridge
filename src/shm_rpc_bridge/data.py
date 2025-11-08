@@ -6,7 +6,7 @@ Contains serialization/deserialization (serdes), message definitions, and protoc
 
 from __future__ import annotations
 
-import json
+import orjson
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
@@ -88,14 +88,14 @@ class JSONSerdes(Serdes):
 
     def serialize(self, data: Any) -> bytes:
         try:
-            return json.dumps(data).encode("utf-8")
+            return orjson.dumps(data)
         except (TypeError, ValueError) as e:
             raise RPCSerializationError(f"Failed to serialize data: {e}") from e
 
     def deserialize(self, data: bytes) -> Any:
         try:
-            return json.loads(data.decode("utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            return orjson.loads(data)
+        except (orjson.JSONDecodeError, UnicodeDecodeError) as e:
             raise RPCSerializationError(f"Failed to deserialize data: {e}") from e
 
 
