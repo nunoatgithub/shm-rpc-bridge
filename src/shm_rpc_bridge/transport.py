@@ -22,7 +22,7 @@ class SharedMemoryTransport:
     """
 
     HEADER_SIZE = 4  # 4 bytes for message length
-    DEFAULT_BUFFER_SIZE = 65536  # 64KB default buffer
+    DEFAULT_BUFFER_SIZE = 3145728  # 3MB default buffer
 
     def __init__(
         self,
