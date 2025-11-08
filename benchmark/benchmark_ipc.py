@@ -81,19 +81,10 @@ class DataService:
         return result
 
 
-def create_large_message(size: str = "small") -> dict:
-    """
-    Create a large, complex nested data structure.
-
-    Args:
-        size: "small" (1KB), "medium" (10KB), or "large" (100KB)
-    """
-    if size == "small":
-        items = 10
-    elif size == "medium":
-        items = 100
-    else:  # large
-        items = 1000
+# Create large message once and reuse it across all benchmarks
+def _create_large_message() -> dict:
+    """Create a large, complex nested data structure."""
+    items = 1000
 
     return {
         "items_count": items,
@@ -123,6 +114,10 @@ def create_large_message(size: str = "small") -> dict:
             "categories": ["electronics", "clothing", "food", "toys"],
         }
     }
+
+
+# Constant large message for benchmarking
+LARGE_MESSAGE = _create_large_message()
 
 
 # ==============================================================================
@@ -294,14 +289,13 @@ def benchmark_processes() -> float:
 # Benchmark 4: Large Messages - Direct Calls
 # ==============================================================================
 
-def benchmark_large_direct(message_size: str = "medium") -> float:
+def benchmark_large_direct(message_size: str = "large") -> float:
     """Benchmark direct calls with large messages."""
     service = DataService()
-    large_msg = create_large_message(message_size)
 
     start = time.perf_counter()
     for _ in range(NUM_ITERATIONS_LARGE):
-        result = service.process_data(large_msg)
+        result = service.process_data(LARGE_MESSAGE)
     end = time.perf_counter()
 
     return end - start
@@ -330,7 +324,7 @@ def run_data_server_thread(channel: str, ready_event: threading.Event, server_ho
         server.close()
 
 
-def benchmark_large_threads(message_size: str = "medium") -> float:
+def benchmark_large_threads(message_size: str = "large") -> float:
     """Benchmark RPC with large messages between threads."""
     channel = "bench_large_threads"
     ready_event = threading.Event()
@@ -347,14 +341,13 @@ def benchmark_large_threads(message_size: str = "medium") -> float:
     ready_event.wait(timeout=5.0)
 
     client = None
-    large_msg = create_large_message(message_size)
 
     try:
         client = RPCClient(channel, timeout=10.0)
 
         start = time.perf_counter()
         for _ in range(NUM_ITERATIONS_LARGE):
-            result = client.call("process_data", data=large_msg)
+            result = client.call("process_data", data=LARGE_MESSAGE)
         end = time.perf_counter()
 
         return end - start
@@ -392,7 +385,7 @@ def run_data_server_process(channel: str, ready_queue: multiprocessing.Queue) ->
         server.close()
 
 
-def benchmark_large_processes(message_size: str = "medium") -> float:
+def benchmark_large_processes(message_size: str = "large") -> float:
     """Benchmark RPC with large messages between processes."""
     channel = "bench_large_processes"
     ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
@@ -414,14 +407,13 @@ def benchmark_large_processes(message_size: str = "medium") -> float:
         raise RuntimeError(f"Server failed to start: {e}")
 
     client = None
-    large_msg = create_large_message(message_size)
 
     try:
         client = RPCClient(channel, timeout=10.0)
 
         start = time.perf_counter()
         for _ in range(NUM_ITERATIONS_LARGE):
-            result = client.call("process_data", data=large_msg)
+            result = client.call("process_data", data=LARGE_MESSAGE)
         end = time.perf_counter()
 
         return end - start
@@ -558,9 +550,7 @@ def main() -> None:
     print("PART 2: Large Message Benchmarks (Complex Data Structures)")
     print("=" * 70)
 
-    # Test with medium-sized messages (~10KB JSON)
-    message_size = "medium"
-    sample_msg = create_large_message(message_size)
+    sample_msg = LARGE_MESSAGE
     import json
     msg_size_kb = len(json.dumps(sample_msg)) / 1024
     print(f"Message size: ~{msg_size_kb:.1f} KB (serialized JSON)")
@@ -568,14 +558,14 @@ def main() -> None:
 
     # Benchmark 4: Large direct calls (baseline)
     print("\n[1/3] Running baseline benchmark (direct calls with large data)...")
-    large_direct_time = benchmark_large_direct(message_size)
+    large_direct_time = benchmark_large_direct()
     print_results("Benchmark 4: Direct Calls (Large Messages Baseline)", large_direct_time,
                   iterations=NUM_ITERATIONS_LARGE)
 
     # Benchmark 5: Large threads
     print("\n[2/3] Running thread benchmark (SHM-RPC with large messages)...")
     try:
-        large_thread_time = benchmark_large_threads(message_size)
+        large_thread_time = benchmark_large_threads()
         print_results("Benchmark 5: SHM-RPC Threads (Large Messages)",
                       large_thread_time, large_direct_time, NUM_ITERATIONS_LARGE)
     except Exception as e:
@@ -585,7 +575,7 @@ def main() -> None:
     # Benchmark 6: Large processes
     print("\n[3/3] Running process benchmark (SHM-RPC with large messages)...")
     try:
-        large_process_time = benchmark_large_processes(message_size)
+        large_process_time = benchmark_large_processes()
         print_results("Benchmark 6: SHM-RPC Processes (Large Messages)",
                       large_process_time, large_direct_time, NUM_ITERATIONS_LARGE)
     except Exception as e:

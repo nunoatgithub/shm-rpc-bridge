@@ -76,10 +76,10 @@ with RPCClient("my_service") as client:
        │  3. Signal with semaphore                      │
        ├────────────────────────────────────────────────┤
        │           Shared Memory Region                 │
-       │    ┌─────────────────────────────────┐        │
+       │    ┌────────────────────────────────-─┐        │
        │    │  Request Buffer   (Client→Server)│        │
        │    │  Response Buffer  (Server→Client)│        │
-       │    └─────────────────────────────────┘        │
+       │    └─────────────────────────────────-┘        │
        ├────────────────────────────────────────────────┤
        │                                                │
        │              4. Read from shared memory        │
@@ -132,7 +132,7 @@ class RPCServer:
     def __init__(
         self,
         name: str,
-        buffer_size: int = 65536,
+        buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
         timeout: float | None = None
     )
     
@@ -159,7 +159,7 @@ class RPCClient:
     def __init__(
         self,
         name: str,
-        buffer_size: int = 65536,
+        buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
         timeout: float | None = 5.0
     )
     
@@ -258,7 +258,7 @@ Four POSIX semaphores per channel:
 
 - **Same-host only**: Shared memory requires processes on the same machine
 - **POSIX systems**: Requires POSIX semaphore support (Linux, macOS, BSD)
-- **Buffer size**: Messages must fit in configured buffer (default 64KB)
+- **Buffer size**: Messages must fit in configured buffer (default 3MB)
 - **No encryption**: Data in shared memory is not encrypted (same-host trust model)
 - **Single channel**: Each client-server pair uses one channel (no connection pooling)
 
@@ -275,11 +275,6 @@ ps aux | grep your_server_script
 ### "Message too large"
 
 Increase buffer size when creating client/server:
-
-```python
-server = RPCServer("my_service", buffer_size=131072)  # 128KB
-client = RPCClient("my_service", buffer_size=131072)
-```
 
 ### Resource leaks
 

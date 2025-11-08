@@ -16,7 +16,6 @@ import os
 import sys
 import time
 from concurrent import futures
-from pathlib import Path
 
 import grpc
 
@@ -30,12 +29,12 @@ import echo_pb2
 import echo_pb2_grpc
 
 # Benchmark configuration
-NUM_ITERATIONS = 100_000  # Number of RPC calls to make
+NUM_ITERATIONS = 50_000  # Number of RPC calls to make
 MESSAGE_SIZES = {
-    "small": "A" * 15,                               # 15 bytes
-    "medium": "B" * 1000,                            # 1KB
-    "big": "C" * 10_000,                             # 10KB
-    "large": "D" * 60_000,                           # 60KB
+    "small": "A" * 100,                              # 100 bytes
+    "medium": "B" * 10_000,                          # 10KB
+    "large": "C" * 500_000,                          # 500KB
+    "big": "D" * 2_000_000,                          # 2MB
 }
 
 
@@ -451,7 +450,6 @@ def main() -> None:
             "grpc_uds_time": grpc_uds_time,
             "grpc_tcp_time": grpc_tcp_time,
         }
-        print_comparison(size_name, message, shm_time, grpc_uds_time, grpc_tcp_time)
 
         # Cleanup between tests
         cleanup_shm_resources(shm_channel)
