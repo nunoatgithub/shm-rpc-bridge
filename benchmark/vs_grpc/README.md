@@ -7,10 +7,10 @@ This benchmark compares the performance of the SHM-RPC bridge library against st
 The benchmark measures the latency and throughput of simple string echo operations across different message sizes and transport methods:
 
 **Message Sizes:**
-- **Small**: 15 bytes
-- **Medium**: 1KB (1,000 bytes)
-- **Big**: 10KB (10,000 bytes)
-- **Large**: 60KB (60,000 bytes)
+- **Small**: 100 bytes
+- **Medium**: 10 KB
+- **Big**: 500 KB
+- **Large**: 2 MB
 
 **Transport Methods:**
 - **SHM-RPC**: Shared memory with POSIX semaphores
@@ -156,6 +156,8 @@ Installing grpcio...
 ✓ grpcio and grpcio-tools installed
 
 Generating gRPC code from proto file...
+/home/nuno/dev/tools/miniconda3/envs/shm-rpc-bridge/lib/python3.8/site-packages/grpc_tools/protoc.py:25: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+  import pkg_resources
 ✓ gRPC code generated
 
 Cleaning up any leftover shared memory and socket resources...
@@ -181,7 +183,7 @@ This will take several minutes
 ======================================================================
 SHM-RPC Bridge vs gRPC Benchmark
 ======================================================================
-Iterations per test: 100,000
+Iterations per test: 50,000
 Communication: Process-to-Process
 
 Cleaning up any leftover resources...
@@ -189,167 +191,84 @@ Cleanup complete.
 
 
 ======================================================================
-Testing SMALL messages (15 bytes)
+Testing SMALL messages (100 bytes)
 ======================================================================
 
 [1/3] Running SHM-RPC benchmark...
-      Completed in 5.51 s
+      Completed in 1.61 s
 
 [2/3] Running gRPC (UDS) benchmark...
-      Completed in 31.96 s
+      Completed in 16.17 s
 
 [3/3] Running gRPC (TCP) benchmark...
-      Completed in 34.22 s
+      Completed in 17.20 s
 
 ======================================================================
-SMALL MESSAGE (15 bytes)
-======================================================================
-
-SHM-RPC Bridge:
-  Total time:    5.51 s
-  Throughput:    18.16 K ops/s
-  Avg latency:   55.07 μs/call
-
-gRPC (Unix Domain Sockets):
-  Total time:    31.96 s
-  Throughput:    3.13 K ops/s
-  Avg latency:   319.60 μs/call
-
-gRPC (TCP/IP localhost):
-  Total time:    34.22 s
-  Throughput:    2.92 K ops/s
-  Avg latency:   342.16 μs/call
-
-Fastest: SHM-RPC
-
-======================================================================
-Testing MEDIUM messages (1000 bytes)
+Testing MEDIUM messages (10000 bytes)
 ======================================================================
 
 [1/3] Running SHM-RPC benchmark...
-      Completed in 6.98 s
+      Completed in 2.60 s
 
 [2/3] Running gRPC (UDS) benchmark...
-      Completed in 32.31 s
+      Completed in 17.38 s
 
 [3/3] Running gRPC (TCP) benchmark...
-      Completed in 36.42 s
+      Completed in 18.48 s
 
 ======================================================================
-MEDIUM MESSAGE (1000 bytes)
-======================================================================
-
-SHM-RPC Bridge:
-  Total time:    6.98 s
-  Throughput:    14.33 K ops/s
-  Avg latency:   69.76 μs/call
-
-gRPC (Unix Domain Sockets):
-  Total time:    32.31 s
-  Throughput:    3.09 K ops/s
-  Avg latency:   323.15 μs/call
-
-gRPC (TCP/IP localhost):
-  Total time:    36.42 s
-  Throughput:    2.75 K ops/s
-  Avg latency:   364.21 μs/call
-
-Fastest: SHM-RPC
-
-======================================================================
-Testing BIG messages (10000 bytes)
+Testing LARGE messages (500000 bytes)
 ======================================================================
 
 [1/3] Running SHM-RPC benchmark...
-      Completed in 19.41 s
+      Completed in 45.11 s
 
 [2/3] Running gRPC (UDS) benchmark...
-      Completed in 36.81 s
+      Completed in 1m 26.56s
 
 [3/3] Running gRPC (TCP) benchmark...
-      Completed in 37.57 s
+      Completed in 1m 34.48s
 
 ======================================================================
-BIG MESSAGE (10000 bytes)
-======================================================================
-
-SHM-RPC Bridge:
-  Total time:    19.41 s
-  Throughput:    5.15 K ops/s
-  Avg latency:   194.14 μs/call
-
-gRPC (Unix Domain Sockets):
-  Total time:    36.81 s
-  Throughput:    2.72 K ops/s
-  Avg latency:   368.13 μs/call
-
-gRPC (TCP/IP localhost):
-  Total time:    37.57 s
-  Throughput:    2.66 K ops/s
-  Avg latency:   375.72 μs/call
-
-Fastest: SHM-RPC
-
-======================================================================
-Testing LARGE messages (60000 bytes)
+Testing BIG messages (2000000 bytes)
 ======================================================================
 
 [1/3] Running SHM-RPC benchmark...
-      Completed in 1m 26.86s
+      Completed in 3m 2.48s
 
 [2/3] Running gRPC (UDS) benchmark...
-      Completed in 47.77 s
+      Completed in 4m 24.44s
 
 [3/3] Running gRPC (TCP) benchmark...
-      Completed in 51.18 s
-
-======================================================================
-LARGE MESSAGE (60000 bytes)
-======================================================================
-
-SHM-RPC Bridge:
-  Total time:    1m 26.86s
-  Throughput:    1.15 K ops/s
-  Avg latency:   868.65 μs/call
-
-gRPC (Unix Domain Sockets):
-  Total time:    47.77 s
-  Throughput:    2.09 K ops/s
-  Avg latency:   477.71 μs/call
-
-gRPC (TCP/IP localhost):
-  Total time:    51.18 s
-  Throughput:    1.95 K ops/s
-  Avg latency:   511.81 μs/call
-
-Fastest: gRPC-UDS
+      Completed in 4m 39.83s
 
 
 ======================================================================
 OVERALL SUMMARY
 ======================================================================
 
-Small (15 bytes):
-  SHM-RPC:    55.07 μs/call
-  gRPC (UDS): 319.60 μs/call
-  gRPC (TCP): 342.16 μs/call
+Small (100 bytes):
+  SHM-RPC:    32.26 μs/call
+  gRPC (UDS): 323.38 μs/call
+  gRPC (TCP): 343.91 μs/call
 
-Medium (1000 bytes):
-  SHM-RPC:    69.76 μs/call
-  gRPC (UDS): 323.15 μs/call
-  gRPC (TCP): 364.21 μs/call
+Medium (10000 bytes):
+  SHM-RPC:    51.99 μs/call
+  gRPC (UDS): 347.60 μs/call
+  gRPC (TCP): 369.58 μs/call
 
-Big (10000 bytes):
-  SHM-RPC:    194.14 μs/call
-  gRPC (UDS): 368.13 μs/call
-  gRPC (TCP): 375.72 μs/call
+Large (500000 bytes):
+  SHM-RPC:    902.19 μs/call
+  gRPC (UDS): 1731.23 μs/call
+  gRPC (TCP): 1889.54 μs/call
 
-Large (60000 bytes):
-  SHM-RPC:    868.65 μs/call
-  gRPC (UDS): 477.71 μs/call
-  gRPC (TCP): 511.81 μs/call
+Big (2000000 bytes):
+  SHM-RPC:    3649.69 μs/call
+  gRPC (UDS): 5288.85 μs/call
+  gRPC (TCP): 5596.50 μs/call
 
 ======================================================================
+
 ```
 
 
