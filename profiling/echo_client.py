@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from shm_rpc_bridge import RPCClient
 
+
 def run_client():
     client = RPCClient("echo_profile", timeout=10.0)
     message = "x" * 2_000_000

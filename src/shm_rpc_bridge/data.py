@@ -6,10 +6,11 @@ Contains serialization/deserialization (serdes), message definitions, and protoc
 
 from __future__ import annotations
 
-import orjson
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
+
+import orjson
 
 from shm_rpc_bridge.exceptions import RPCSerializationError
 
