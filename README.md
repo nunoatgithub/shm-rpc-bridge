@@ -101,7 +101,7 @@ with RPCClient("my_service") as client:
 
 ## Benchmarks
 
-Comprehensive benchmarks are included to help understand performance characteristics.
+Some benchmarks are included to help understand performance characteristics.
 
 ### IPC Implementation Benchmark
 
