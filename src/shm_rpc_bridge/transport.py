@@ -294,11 +294,15 @@ class SharedMemoryTransport:
                 self.request_view.release()
             except Exception:
                 pass
+            finally:
+                self.request_view = None
         if self.response_view:
             try:
                 self.response_view.release()
             except Exception:
                 pass
+            finally:
+                self.response_view = None
 
         # Close and unlink shared memory (only if created by this instance)
         if self.request_shm:
@@ -313,6 +317,7 @@ class SharedMemoryTransport:
                     pass  # Already unlinked
                 except Exception:
                     pass
+            self.request_shm = None
         if self.response_shm:
             try:
                 self.response_shm.close()
@@ -325,6 +330,7 @@ class SharedMemoryTransport:
                     pass  # Already unlinked
                 except Exception:
                     pass
+            self.response_shm = None
 
         # Close and unlink semaphores (only if created by this instance)
         if self.request_empty_sem:
@@ -337,6 +343,7 @@ class SharedMemoryTransport:
                     posix_ipc.unlink_semaphore(self.request_empty_sem_name)
                 except Exception:
                     pass
+            self.request_empty_sem = None
         if self.request_full_sem:
             try:
                 self.request_full_sem.close()
@@ -347,6 +354,7 @@ class SharedMemoryTransport:
                     posix_ipc.unlink_semaphore(self.request_full_sem_name)
                 except Exception:
                     pass
+            self.request_full_sem = None
         if self.response_empty_sem:
             try:
                 self.response_empty_sem.close()
@@ -357,6 +365,7 @@ class SharedMemoryTransport:
                     posix_ipc.unlink_semaphore(self.response_empty_sem_name)
                 except Exception:
                     pass
+            self.response_empty_sem = None
         if self.response_full_sem:
             try:
                 self.response_full_sem.close()
@@ -367,6 +376,7 @@ class SharedMemoryTransport:
                     posix_ipc.unlink_semaphore(self.response_full_sem_name)
                 except Exception:
                     pass
+            self.response_full_sem = None
 
     def __enter__(self) -> SharedMemoryTransport:
         return self
