@@ -39,3 +39,5 @@ venv.bak/
 dmypy.json
 .ruff_cache/
 
+/profiling/client_profile.prof
+/profiling/server_profile.prof
