@@ -7,7 +7,7 @@ This directory contains performance benchmarks comparing the SHM-RPC bridge impl
 The benchmark script (`benchmark_ipc.py`) measures the performance overhead of using shared memory IPC for RPC communication in two scenarios:
 
 1. **Small Messages**: Simple integer operations (addition)
-2. **Large Messages**: Complex nested data structures (~31KB JSON)
+2. **Large Messages**: Complex nested data structures 
 
 Each scenario is tested with three different execution contexts:
 - **Direct**: In-process function calls (baseline, no IPC overhead)
@@ -71,31 +71,6 @@ For each benchmark, the following metrics are reported:
 
 ```
 =======================================================================
-SHM-RPC Bridge Benchmark Runner
-=======================================================================
-
-Python version: 3.8.20
-
-Installing dependencies...
----
-✓ posix-ipc installed
-
-Cleaning up any leftover shared memory resources...
-POSIX IPC Cleanup Utility
-============================================================
-
-Cleaning up shared memory segments...
-
-Cleaning up semaphores...
-
-============================================================
-Summary:
-  Shared memory segments: 0 removed, 0 failed
-  Semaphores: 0 removed, 0 failed
-  Total: 0 removed, 0 failed
-✓ Cleanup complete
-
-=======================================================================
 Running benchmark (this may take several minutes)...
 =======================================================================
 
@@ -117,74 +92,74 @@ PART 1: Small Message Benchmarks (Simple Integer Operations)
 
 Benchmark 1: Direct Object Calls (Baseline)
 ======================================================================
-  Total time:       11.89 ms
-  Throughput:       8.41 M ops/s
-  Avg latency:      0.12 μs/call
+  Total time:       16.32 ms
+  Throughput:       6.13 M ops/s
+  Avg latency:      0.16 μs/call
 
 [2/3] Running thread benchmark (SHM-RPC between threads)...
 
 Benchmark 2: SHM-RPC Between Threads
 ======================================================================
-  Total time:       5.98 s
-  Throughput:       16.72 K ops/s
-  Avg latency:      59.80 μs/call
-  vs Baseline:      502.94x slower (+50193.8% overhead)
+  Total time:       3.62 s
+  Throughput:       27.63 K ops/s
+  Avg latency:      36.19 μs/call
+  vs Baseline:      221.76x slower (+22076.0% overhead)
 
 [3/3] Running process benchmark (SHM-RPC between processes)...
 
 Benchmark 3: SHM-RPC Between Processes
 ======================================================================
-  Total time:       5.44 s
-  Throughput:       18.38 K ops/s
-  Avg latency:      54.40 μs/call
-  vs Baseline:      457.52x slower (+45651.6% overhead)
+  Total time:       3.40 s
+  Throughput:       29.44 K ops/s
+  Avg latency:      33.97 μs/call
+  vs Baseline:      208.13x slower (+20713.2% overhead)
 
 ======================================================================
 Small Message Summary
 ======================================================================
-  Direct calls:     11.89 ms (baseline)
-  Threads:          5.98 s (502.94x)
-  Processes:        5.44 s (457.52x)
+  Direct calls:     16.32 ms (baseline)
+  Threads:          3.62 s (221.76x)
+  Processes:        3.40 s (208.13x)
 
 
 ======================================================================
 PART 2: Large Message Benchmarks (Complex Data Structures)
 ======================================================================
-Message size: ~31.1 KB (serialized JSON)
+Message size: ~313.9 KB (serialized JSON)
 
 
 [1/3] Running baseline benchmark (direct calls with large data)...
 
 Benchmark 4: Direct Calls (Large Messages Baseline)
 ======================================================================
-  Total time:       3.14 s
-  Throughput:       3.18 K ops/s
-  Avg latency:      314.00 μs/call
+  Total time:       32.05 s
+  Throughput:       312.06 ops/s
+  Avg latency:      3204.56 μs/call
 
 [2/3] Running thread benchmark (SHM-RPC with large messages)...
 
 Benchmark 5: SHM-RPC Threads (Large Messages)
 ======================================================================
-  Total time:       19.27 s
-  Throughput:       519.02 ops/s
-  Avg latency:      1926.69 μs/call
-  vs Baseline:      6.14x slower (+513.6% overhead)
+  Total time:       1m 26.29s
+  Throughput:       115.89 ops/s
+  Avg latency:      8629.03 μs/call
+  vs Baseline:      2.69x slower (+169.3% overhead)
 
 [3/3] Running process benchmark (SHM-RPC with large messages)...
 
 Benchmark 6: SHM-RPC Processes (Large Messages)
 ======================================================================
-  Total time:       18.74 s
-  Throughput:       533.72 ops/s
-  Avg latency:      1873.63 μs/call
-  vs Baseline:      5.97x slower (+496.7% overhead)
+  Total time:       1m 24.46s
+  Throughput:       118.40 ops/s
+  Avg latency:      8446.17 μs/call
+  vs Baseline:      2.64x slower (+163.6% overhead)
 
 ======================================================================
 Large Message Summary
 ======================================================================
-  Direct calls:     3.14 s (baseline)
-  Threads:          19.27 s (6.14x)
-  Processes:        18.74 s (5.97x)
+  Direct calls:     32.05 s (baseline)
+  Threads:          1m 26.29s (2.69x)
+  Processes:        1m 24.46s (2.64x)
 
 
 ======================================================================
@@ -192,17 +167,16 @@ OVERALL SUMMARY
 ======================================================================
 
 Small Messages (integers):
-  Direct:    11.89 ms
-  Threads:   5.98 s (502.9x overhead)
-  Processes: 5.44 s (457.5x overhead)
+  Direct:    16.32 ms
+  Threads:   3.62 s (221.8x overhead)
+  Processes: 3.40 s (208.1x overhead)
 
-Large Messages (~31.1 KB):
-  Direct:    3.14 s
-  Threads:   19.27 s (6.1x overhead)
-  Processes: 18.74 s (6.0x overhead)
+Large Messages (~313.9 KB):
+  Direct:    32.05 s
+  Threads:   1m 26.29s (2.7x overhead)
+  Processes: 1m 24.46s (2.6x overhead)
 
 ======================================================================
-
 ```
 
 ## Troubleshooting
