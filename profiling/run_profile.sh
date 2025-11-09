@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 rm -f server_profile.prof client_profile.prof
 
-echo "Running profiling..."
+echo "Profiling..."
 python echo_server.py &
 sleep 2
 python echo_client.py
