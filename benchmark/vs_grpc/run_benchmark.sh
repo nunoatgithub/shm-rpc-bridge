@@ -31,6 +31,13 @@ pip install -q posix-ipc || {
 }
 echo "✓ posix-ipc installed"
 
+echo "Installing orjson..."
+pip install -q orjson || {
+    echo "Error: Failed to install orjson"
+    exit 1
+}
+echo "✓ orjson installed"
+
 echo "Installing grpcio..."
 pip install -q grpcio grpcio-tools || {
     echo "Error: Failed to install gRPC"

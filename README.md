@@ -21,6 +21,7 @@ pip install -e .
 - Python 3.8 or higher
 - Linux/Unix with POSIX shared memory support
 - `posix-ipc` library (installed automatically)
+- `orjson` library (installed automatically)
 
 ## Quick Start
 

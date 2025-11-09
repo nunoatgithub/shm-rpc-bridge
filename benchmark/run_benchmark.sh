@@ -29,6 +29,13 @@ pip install -q posix-ipc || {
 }
 
 echo "✓ posix-ipc installed"
+
+pip install -q orjson || {
+    echo "Error: Failed to install orjson"
+    exit 1
+}
+
+echo "✓ orjson installed"
 echo ""
 
 # Clean up any leftover resources

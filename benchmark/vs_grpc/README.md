@@ -32,7 +32,7 @@ Use the provided script to install all dependencies and run the benchmark:
 
 This script will:
 - Check your Python version
-- Install required dependencies (posix-ipc, grpcio, grpcio-tools)
+- Install required dependencies (posix-ipc, orjson, grpcio, grpcio-tools)
 - Generate gRPC code from the proto file
 - Clean up any leftover resources (shared memory, Unix sockets)
 - Run the benchmark
@@ -45,7 +45,7 @@ Alternatively, you can set it up manually:
 #### Install Dependencies
 
 ```bash
-pip install posix-ipc grpcio grpcio-tools
+pip install posix-ipc orjson grpcio grpcio-tools
 ```
 
 #### Generate gRPC Code

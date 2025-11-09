@@ -27,7 +27,7 @@ Use the provided script to install dependencies and run the benchmark:
 
 This script will:
 - Check your Python version
-- Install required dependencies (posix-ipc)
+- Install required dependencies (posix-ipc, orjson)
 - Clean up any leftover resources
 - Run the benchmark
 - Display results
@@ -38,7 +38,7 @@ Alternatively, you can run it manually:
 
 ```bash
 # From the repository root
-pip install posix-ipc
+pip install posix-ipc orjson
 python benchmark/benchmark_ipc.py
 ```
 
