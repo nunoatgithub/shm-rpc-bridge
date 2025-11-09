@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import cProfile
 import os
+import pstats
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -19,7 +20,21 @@ def run_client():
 
     profiler.disable()
     profiler.dump_stats("client_profile.prof")
+
+    # Print profiling statistics
+    print("\n" + "="*80)
+    print("CLIENT PROFILING STATISTICS")
+    print("="*80)
+    stats = pstats.Stats(profiler)
+    stats.strip_dirs()
+    stats.sort_stats('cumulative')
+    stats.print_stats(20)  # Print top 20 functions by cumulative time
+    print("\nTop 20 functions by total time:")
+    stats.sort_stats('tottime')
+    stats.print_stats(20)
+    print("="*80)
     print("Client profile saved to client_profile.prof")
+
     client.close()
 
 

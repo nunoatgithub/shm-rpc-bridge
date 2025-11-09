@@ -16,6 +16,19 @@ This will:
 
 ## View Results
 
+The profiling script automatically prints statistics for both server and client, showing:
+- Top 20 functions by cumulative time
+- Top 20 functions by total time
+
+Profile files are also saved for later analysis:
+
+```bash
+python -m pstats server_profile.prof
+python -m pstats client_profile.prof
+```
+
+For visual analysis:
+
 ```bash
 snakeviz server_profile.prof
 snakeviz client_profile.prof
