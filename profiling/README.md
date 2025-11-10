@@ -10,17 +10,15 @@ Profile client and server performance with cProfile and snakeviz.
 
 This will:
 1. Start the echo server with profiling enabled
-2. Run the client making 50.000 calls with 2MB messages
-3. Stop the server after 50.000 calls
-4. Generate profile files
+2. Run the client making 50,000 calls with 2MB messages
+3. Send SIGTERM to the server 2 seconds after client exits
+4. Generate profile files and print statistics
 
 ## View Results
 
-The profiling script automatically prints statistics for both server and client, showing:
-- Top 20 functions by cumulative time
-- Top 20 functions by total time
+Both server (on SIGTERM) and client automatically print top 20 functions by cumulative time.
 
-Profile files are also saved for later analysis:
+Profile files are saved for later analysis:
 
 ```bash
 python -m pstats server_profile.prof
