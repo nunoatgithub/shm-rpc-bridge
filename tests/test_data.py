@@ -1,5 +1,3 @@
-"""Tests for the data module."""
-
 import pytest
 
 from shm_rpc_bridge.data import JSONSerdes, RPCCodec, RPCRequest, RPCResponse, Serdes
