@@ -49,18 +49,27 @@ class TestSharedMemoryTransport:
         assert transport.response_empty_sem is None
         assert transport.response_full_sem is None
 
-    def test_create_and_cleanup(self, buffer_size) -> None:
-        transport = SharedMemoryTransport.create(name="test_create", buffer_size=buffer_size)
+    def test_create_and_close(self, buffer_size) -> None:
+        transport = SharedMemoryTransport.create(name="test_create", buffer_size=buffer_size, timeout=1.1)
         self._assert_server_ipc_initialized(transport=transport, name="test_create", buffer_size=buffer_size)
-        transport.cleanup()
+        assert transport.timeout == 1.1
+        transport.close()
         self._assert_ipc_resources_cleaned_up(transport)
 
-    def test_create_and_cleanup_with_context_manager(self, buffer_size) -> None:
+        # and repeat but with default constructor
+        transport = SharedMemoryTransport.create(name="test_create_default")
+        self._assert_server_ipc_initialized(transport=transport, name="test_create_default",
+                                            buffer_size=SharedMemoryTransport.DEFAULT_BUFFER_SIZE)
+        assert transport.timeout is None
+        transport.close()
+        self._assert_ipc_resources_cleaned_up(transport)
+
+    def test_create_and_close_with_context_manager(self, buffer_size) -> None:
         with SharedMemoryTransport.create(name="test_context", buffer_size=buffer_size) as transport:
             self._assert_server_ipc_initialized(transport=transport, name="test_context", buffer_size=buffer_size)
         self._assert_ipc_resources_cleaned_up(transport)
 
-    def test_open_and_cleanup(self, buffer_size) -> None:
+    def test_open_and_close(self, buffer_size) -> None:
 
         def create_transport_and_wait(name: str, ev: multiprocessing.Event, q: multiprocessing.Queue) -> None:
             with SharedMemoryTransport.create(name=name, buffer_size=buffer_size) as server_transport:
@@ -87,10 +96,10 @@ class TestSharedMemoryTransport:
         # of the next client to do the same
 
         client_transport = SharedMemoryTransport.open(name="test_open", buffer_size=buffer_size)
-        client_transport.cleanup()
+        client_transport.close()
 
         client_transport = SharedMemoryTransport.open(name="test_open", buffer_size=buffer_size)
-        client_transport.cleanup()
+        client_transport.close()
 
         # Signal server to exit
         event.set()
@@ -138,22 +147,22 @@ class TestSharedMemoryTransport:
             client_transport.receive_response()
 
     @pytest.mark.parametrize('timeout', [1], indirect=True)
-    def test_cleanup_doesnt_break_acquire(self, server_transport, timeout) -> None:
+    def test_close_doesnt_break_acquire(self, server_transport, timeout) -> None:
         """
-        Test that cleanup does not create an SBT exception due to unlinking an ongoing acquired sem
+        Test that close does not create an SBT exception due to unlinking an ongoing acquired sem
         """
         receive_started = threading.Event()
         receive_finished = threading.Event()
 
-        cleanup_interrupts_timeout = True
+        close_interrupts_timeout = True
 
         def blocking_receive():
-            nonlocal cleanup_interrupts_timeout
+            nonlocal close_interrupts_timeout
             receive_started.set()
             try:
                 server_transport.receive_request()
             except RPCTimeoutError:
-                cleanup_interrupts_timeout = False
+                close_interrupts_timeout = False
             except Exception:
                 pass
             receive_finished.set()
@@ -164,9 +173,7 @@ class TestSharedMemoryTransport:
 
         time.sleep(0.1)
 
-        server_transport.cleanup()
+        server_transport.close()
         receive_finished.wait(2.0)
 
-        assert not cleanup_interrupts_timeout
-
-
+        assert not close_interrupts_timeout

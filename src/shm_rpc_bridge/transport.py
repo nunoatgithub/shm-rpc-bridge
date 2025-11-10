@@ -94,7 +94,7 @@ class SharedMemoryTransport:
                 # Client opens existing resources
                 self._open_resources()
         except Exception as e:
-            self.cleanup()
+            self.close()
             raise RPCTransportError(f"Failed to initialize transport: {e}") from e
 
     def _create_resources(self) -> None:
@@ -337,7 +337,7 @@ class SharedMemoryTransport:
             except Exception as e:
                 raise RPCTransportError(f"Failed to receive response: {e}") from e
 
-    def cleanup(self) -> None:
+    def close(self) -> None:
         """Clean up all IPC resources."""
 
         with self._lock:
@@ -390,4 +390,4 @@ class SharedMemoryTransport:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore
-        self.cleanup()
+        self.close()
