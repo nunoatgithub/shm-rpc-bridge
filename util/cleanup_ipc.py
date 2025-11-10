@@ -28,7 +28,7 @@ except ImportError:
 
 def list_shared_memory():
     """
-    List all shared memory segments.
+    List all POSIX shared memory segments (excluding semaphores).
 
     Returns:
         List of shared memory segment names
@@ -39,9 +39,9 @@ def list_shared_memory():
     if os.path.exists(shm_dir):
         try:
             for name in os.listdir(shm_dir):
-                # Skip directories and non-IPC files
+                # Skip directories, semaphores (sem. prefix), and non-IPC files
                 path = os.path.join(shm_dir, name)
-                if os.path.isfile(path):
+                if os.path.isfile(path) and not name.startswith("sem."):
                     # POSIX shared memory names start with /
                     shm_list.append(f"/{name}")
         except PermissionError:
@@ -178,23 +178,36 @@ def main():
 
     # List mode
     if args.list:
-        print("=== Shared Memory Segments ===")
+        print("=== POSIX IPC Resources in /dev/shm ===")
+        print()
+        print("Shared Memory Segments (data buffers):")
         shm_list = list_shared_memory()
         if shm_list:
-            for shm in shm_list:
-                if not args.prefix or shm[1:].startswith(args.prefix):
+            filtered_shm = [shm for shm in shm_list if not args.prefix or shm[1:].startswith(args.prefix)]
+            if filtered_shm:
+                for shm in filtered_shm:
                     print(f"  {shm}")
+            else:
+                print("  (none matching filter)")
         else:
             print("  (none found)")
 
-        print("\n=== POSIX Semaphores ===")
+        print()
+        print("POSIX Semaphores (synchronization primitives):")
         sem_list = list_semaphores()
         if sem_list:
-            for sem in sem_list:
-                if not args.prefix or sem[1:].startswith(args.prefix):
+            filtered_sem = [sem for sem in sem_list if not args.prefix or sem[1:].startswith(args.prefix)]
+            if filtered_sem:
+                for sem in filtered_sem:
                     print(f"  {sem}")
+            else:
+                print("  (none matching filter)")
         else:
             print("  (none found)")
+
+        print()
+        print(f"Note: Both are stored as files in /dev/shm/")
+        print(f"      Semaphores have 'sem.' prefix, shared memory segments don't.")
 
         return 0
 
