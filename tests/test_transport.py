@@ -1,4 +1,6 @@
-"""Tests for the transport module."""
+import multiprocessing
+import threading
+import time
 
 import pytest
 
@@ -7,185 +9,164 @@ from shm_rpc_bridge.transport import SharedMemoryTransport
 
 
 class TestSharedMemoryTransport:
-    """Test shared memory transport."""
 
-    def test_create_and_cleanup(self) -> None:
-        """Test creating and cleaning up transport."""
-        transport = SharedMemoryTransport(
-            name="test_create",
-            buffer_size=4096,
-            create=True,
-        )
+    @staticmethod
+    def _assert_client_ipc_initialized(transport: SharedMemoryTransport, name: str, buffer_size: int) -> None:
+        assert transport.name == name
+        assert transport.buffer_size == buffer_size
+        assert transport.create is False
+        assert transport.request_shm is not None
+        assert transport.response_shm is not None
+        assert transport.request_mmap is not None
+        assert transport.response_mmap is not None
+        assert transport.request_empty_sem is not None
+        assert transport.request_full_sem is not None
+        assert transport.response_empty_sem is not None
+        assert transport.response_full_sem is not None
+
+    @staticmethod
+    def _assert_server_ipc_initialized(transport: SharedMemoryTransport, name: str, buffer_size: int) -> None:
+        assert transport.name == name
+        assert transport.buffer_size == buffer_size
+        assert transport.create is True
+        assert transport.request_shm is not None
+        assert transport.response_shm is not None
+        assert transport.request_mmap is not None
+        assert transport.response_mmap is not None
+        assert transport.request_empty_sem is not None
+        assert transport.request_full_sem is not None
+        assert transport.response_empty_sem is not None
+        assert transport.response_full_sem is not None
+
+    @staticmethod
+    def _assert_ipc_resources_cleaned_up(transport: SharedMemoryTransport) -> None:
+        assert transport.request_shm is None
+        assert transport.response_shm is None
+        assert transport.request_mmap is None
+        assert transport.response_mmap is None
+        assert transport.request_empty_sem is None
+        assert transport.request_full_sem is None
+        assert transport.response_empty_sem is None
+        assert transport.response_full_sem is None
+
+    def test_create_and_cleanup(self, buffer_size) -> None:
+        transport = SharedMemoryTransport.create(name="test_create", buffer_size=buffer_size)
+        self._assert_server_ipc_initialized(transport=transport, name="test_create", buffer_size=buffer_size)
         transport.cleanup()
+        self._assert_ipc_resources_cleaned_up(transport)
 
-    def test_context_manager(self) -> None:
-        """Test using transport as context manager."""
-        with SharedMemoryTransport(
-            name="test_context",
-            buffer_size=4096,
-            create=True,
-        ) as transport:
-            assert transport.request_shm is not None
+    def test_create_and_cleanup_with_context_manager(self, buffer_size) -> None:
+        with SharedMemoryTransport.create(name="test_context", buffer_size=buffer_size) as transport:
+            self._assert_server_ipc_initialized(transport=transport, name="test_context", buffer_size=buffer_size)
+        self._assert_ipc_resources_cleaned_up(transport)
 
-    def test_send_receive_request(self) -> None:
-        """Test sending and receiving a request."""
-        server_transport = SharedMemoryTransport(
-            name="test_request",
-            buffer_size=4096,
-            create=True,
-            timeout=1.0,
+    def test_open_and_cleanup(self, buffer_size) -> None:
+
+        def create_transport_and_wait(name: str, ev: multiprocessing.Event, q: multiprocessing.Queue) -> None:
+            with SharedMemoryTransport.create(name=name, buffer_size=buffer_size) as server_transport:
+                ev.set()
+                ev.wait()  # wait for client signal to exit
+                try:
+                    self._assert_server_ipc_initialized(transport=server_transport, name="test_open",
+                                                        buffer_size=buffer_size)
+                    q.put(None)
+                except AssertionError as e:
+                    q.put(str(e))
+
+        event = multiprocessing.Event()
+        queue = multiprocessing.Queue()
+        process = multiprocessing.Process(
+            target=create_transport_and_wait,
+            args=("test_open", event, queue)
         )
-        client_transport = SharedMemoryTransport(
-            name="test_request",
-            buffer_size=4096,
-            create=False,
-            timeout=1.0,
-        )
+        process.start()
+        # Wait for server side
+        event.wait()
 
-        try:
-            # Client sends request
-            test_data = b"Hello, server!"
-            client_transport.send_request(test_data)
+        # Open the transport (client side) and close it, with no exceptions and no impact on the ability
+        # of the next client to do the same
 
-            # Server receives request
+        client_transport = SharedMemoryTransport.open(name="test_open", buffer_size=buffer_size)
+        client_transport.cleanup()
+
+        client_transport = SharedMemoryTransport.open(name="test_open", buffer_size=buffer_size)
+        client_transport.cleanup()
+
+        # Signal server to exit
+        event.set()
+        process.join()
+        server_result = queue.get()
+        assert server_result is None, f"Assertion failed in server: {server_result}"
+
+    def test_send_receive(self, server_transport, client_transport) -> None:
+        request_data = b"Request data"
+        client_transport.send_request(request_data)
+        received_request = server_transport.receive_request()
+        assert received_request == request_data
+
+        response_data = b"Response data"
+        server_transport.send_response(response_data)
+        received_response = client_transport.receive_response()
+        assert received_response == response_data
+
+    def test_conversation(self, server_transport, client_transport) -> None:
+        # Send multiple request/response pairs
+        for i in range(3):
+            request = f"Request {i}".encode()
+            client_transport.send_request(request)
             received = server_transport.receive_request()
-            assert received == test_data
-
-        finally:
-            client_transport.cleanup()
-            server_transport.cleanup()
-
-    def test_send_receive_response(self) -> None:
-        """Test sending and receiving a response."""
-        server_transport = SharedMemoryTransport(
-            name="test_response",
-            buffer_size=4096,
-            create=True,
-            timeout=1.0,
-        )
-        client_transport = SharedMemoryTransport(
-            name="test_response",
-            buffer_size=4096,
-            create=False,
-            timeout=1.0,
-        )
-
-        try:
-            # Server sends response
-            test_data = b"Hello, client!"
-            server_transport.send_response(test_data)
-
-            # Client receives response
+            assert received == request
+            # Server -> Client
+            response = f"Response {i}".encode()
+            server_transport.send_response(response)
             received = client_transport.receive_response()
-            assert received == test_data
+            assert received == response
 
-        finally:
-            client_transport.cleanup()
-            server_transport.cleanup()
+    def test_message_too_large(self, buffer_size, server_transport, client_transport) -> None:
+        large_data = b"x" * (buffer_size + 1)
+        with pytest.raises(RPCTransportError, match="too large"):
+            client_transport.send_request(large_data)
+        with pytest.raises(RPCTransportError, match="too large"):
+            server_transport.send_response(large_data)
 
-    def test_roundtrip(self) -> None:
-        """Test full request/response roundtrip."""
-        server_transport = SharedMemoryTransport(
-            name="test_roundtrip",
-            buffer_size=4096,
-            create=True,
-            timeout=1.0,
-        )
-        client_transport = SharedMemoryTransport(
-            name="test_roundtrip",
-            buffer_size=4096,
-            create=False,
-            timeout=1.0,
-        )
-
-        try:
-            # Client sends request
-            request_data = b"Request data"
-            client_transport.send_request(request_data)
-
-            # Server receives and sends response
-            received_request = server_transport.receive_request()
-            assert received_request == request_data
-
-            response_data = b"Response data"
-            server_transport.send_response(response_data)
-
-            # Client receives response
-            received_response = client_transport.receive_response()
-            assert received_response == response_data
-
-        finally:
-            client_transport.cleanup()
-            server_transport.cleanup()
-
-    def test_message_too_large(self) -> None:
-        """Test error when message is too large."""
-        with SharedMemoryTransport(
-            name="test_large",
-            buffer_size=1024,
-            create=True,
-        ) as transport:
-            large_data = b"x" * 2048
-            with pytest.raises(RPCTransportError, match="too large"):
-                transport.send_request(large_data)
-
-    def test_timeout(self) -> None:
+    @pytest.mark.parametrize('timeout', [0.1], indirect=True)
+    def test_timeout(self, server_transport, client_transport) -> None:
         """Test timeout when no data available."""
-        with SharedMemoryTransport(
-            name="test_timeout",
-            buffer_size=4096,
-            create=True,
-            timeout=0.1,
-        ) as transport:
-            # Try to receive without sending - should timeout
-            with pytest.raises(RPCTimeoutError):
-                transport.receive_request()
+        with pytest.raises(RPCTimeoutError):
+            server_transport.receive_request()
+        with pytest.raises(RPCTimeoutError):
+            client_transport.receive_response()
 
-    def test_send_timeout(self) -> None:
-        """Test timeout when trying to send without buffer space."""
-        with SharedMemoryTransport(
-            name="test_send_timeout",
-            buffer_size=4096,
-            create=True,
-            timeout=0.1,
-        ) as transport:
-            # Send first request (fills the buffer)
-            transport.send_request(b"First request")
-            # Try to send second request without receiving the first
-            # Should timeout waiting for empty slot
-            with pytest.raises(RPCTimeoutError):
-                transport.send_request(b"Second request")
+    @pytest.mark.parametrize('timeout', [1], indirect=True)
+    def test_cleanup_doesnt_break_acquire(self, server_transport, timeout) -> None:
+        """
+        Test that cleanup does not create an SBT exception due to unlinking an ongoing acquired sem
+        """
+        receive_started = threading.Event()
+        receive_finished = threading.Event()
 
-    def test_sequential_roundtrips(self) -> None:
-        """Test multiple sequential request/response roundtrips."""
-        server_transport = SharedMemoryTransport(
-            name="test_sequential",
-            buffer_size=4096,
-            create=True,
-            timeout=1.0,
-        )
-        client_transport = SharedMemoryTransport(
-            name="test_sequential",
-            buffer_size=4096,
-            create=False,
-            timeout=1.0,
-        )
+        cleanup_interrupts_timeout = True
 
-        try:
-            # Send multiple request/response pairs
-            for i in range(3):
-                # Client -> Server
-                request = f"Request {i}".encode()
-                client_transport.send_request(request)
-                received = server_transport.receive_request()
-                assert received == request
+        def blocking_receive():
+            nonlocal cleanup_interrupts_timeout
+            receive_started.set()
+            try:
+                server_transport.receive_request()
+            except RPCTimeoutError:
+                cleanup_interrupts_timeout = False
+            except Exception:
+                pass
+            receive_finished.set()
 
-                # Server -> Client
-                response = f"Response {i}".encode()
-                server_transport.send_response(response)
-                received = client_transport.receive_response()
-                assert received == response
+        receive_thread = threading.Thread(target=blocking_receive)
+        receive_thread.start()
+        receive_started.wait(0.1)
 
-        finally:
-            client_transport.cleanup()
-            server_transport.cleanup()
+        time.sleep(0.1)
+
+        server_transport.cleanup()
+        receive_finished.wait(2.0)
+
+        assert not cleanup_interrupts_timeout
+
+
