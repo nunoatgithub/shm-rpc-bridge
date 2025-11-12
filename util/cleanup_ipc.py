@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Cleanup utility for POSIX IPC resources.
 
@@ -12,11 +11,13 @@ Usage:
 Options:
     --dry-run       Show what would be deleted without actually deleting
     --prefix        Only delete resources with this prefix (default: all)
+    --list          Lists the resources
     -h, --help      Show this help message
 """
 
 import argparse
 import os
+import platform
 import sys
 
 try:
@@ -25,6 +26,13 @@ except ImportError:
     print("ERROR: posix_ipc module not found. Install it with: pip install posix-ipc")
     sys.exit(1)
 
+# This script only works on Linux
+if platform.system() != "Linux":
+    print("ERROR: This cleanup utility only works on Linux.")
+    print("On macOS, POSIX IPC resources are not exposed in the filesystem,")
+    print("so they cannot be discovered automatically.")
+    print("\nIPC resources on macOS are typically cleaned up on reboot.")
+    sys.exit(1)
 
 def list_shared_memory():
     """
