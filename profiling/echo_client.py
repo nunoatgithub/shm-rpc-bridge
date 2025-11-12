@@ -9,8 +9,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from shm_rpc_bridge import RPCClient
 
 
-def run_client():
-    client = RPCClient("echo_profile", timeout=10.0)
+def run_client(name: str, buffer_size:int, iterations:int):
+    client = RPCClient(name, buffer_size=buffer_size, timeout=10.0)
     message = "x" * 2_000_000
     profiler = cProfile.Profile()
 
@@ -18,11 +18,11 @@ def run_client():
     client.call("echo", message=message)
 
     profiler.enable()
-    for i in range(50_000):
+    for i in range(iterations):
         client.call("echo", message=message)
     profiler.disable()
-    profiler.dump_stats("client_profile.prof")
 
+    profiler.dump_stats("client_profile.prof")
     # Print profiling statistics
     print("\n" + "=" * 80)
     print("CLIENT PROFILING STATISTICS")
@@ -38,4 +38,10 @@ def run_client():
 
 
 if __name__ == "__main__":
-    run_client()
+    if len(sys.argv) < 4:
+        print("Usage: python `profiling/echo_client.py` <name> <buffer_size> <iterations>")
+        sys.exit(1)
+    name = sys.argv[1]
+    buffer_size = int(sys.argv[2])
+    iterations = int(sys.argv[3])
+    run_client(name, buffer_size, iterations)

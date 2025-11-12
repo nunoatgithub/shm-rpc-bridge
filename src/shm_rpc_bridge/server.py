@@ -138,10 +138,10 @@ class RPCServer:
         except RPCTimeoutError:
             return None
 
-    def _handle_request(self) -> None:
+    def _handle_request(self) -> RPCResponse | None:
         data = self._receive_request()
         if data is None:
-            return
+            return None
 
         assert self.codec is not None
         request = self.codec.decode_request(data)
@@ -181,6 +181,7 @@ class RPCServer:
             # Timeout sending response is a REAL error - client not reading
             logger.error(f"Timeout sending response: {e}")
             raise
+        return response
 
     def __enter__(self) -> RPCServer:
         return self
