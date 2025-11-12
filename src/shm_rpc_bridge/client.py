@@ -19,7 +19,7 @@ class RPCClient:
         self,
         name: str,
         buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
-        timeout: float | None = 5.0,
+        timeout: float = SharedMemoryTransport.DEFAULT_TIMEOUT,
     ):
         """
         Initialize the RPC client.
@@ -29,15 +29,13 @@ class RPCClient:
             buffer_size: Size of shared memory buffers
             timeout: Timeout for RPC calls in seconds
         """
-        self.name = name
-        self.timeout = timeout
-        self.transport = SharedMemoryTransport(
+        self.transport: SharedMemoryTransport = SharedMemoryTransport(
             name=name,
             buffer_size=buffer_size,
             create=False,
             timeout=timeout,
         )
-        self.codec = RPCCodec()
+        self.codec: RPCCodec = RPCCodec()
 
     def call(self, method: str, **params: Any) -> Any:
         """
@@ -85,10 +83,18 @@ class RPCClient:
         return response.result
 
     def close(self) -> None:
-        self.transport.cleanup()
+        try:
+            self.transport.close()
+        finally:
+            # Inform the type checker these are intentionally cleared
+            self.transport = None  # type: ignore[assignment]
+            self.codec = None  # type: ignore[assignment]
 
     def __enter__(self) -> RPCClient:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore
+        self.close()
+
+    def __delete__(self, instance: Any) -> None:
         self.close()

@@ -2,6 +2,7 @@ import multiprocessing
 import threading
 import time
 
+import posix_ipc
 import pytest
 
 from shm_rpc_bridge.exceptions import RPCTimeoutError, RPCTransportError
@@ -9,12 +10,13 @@ from shm_rpc_bridge.transport import SharedMemoryTransport
 
 
 class TestSharedMemoryTransport:
-
     @staticmethod
-    def _assert_client_ipc_initialized(transport: SharedMemoryTransport, name: str, buffer_size: int) -> None:
+    def _assert_client_ipc_initialized(
+        transport: SharedMemoryTransport, name: str, buffer_size: int
+    ) -> None:
         assert transport.name == name
         assert transport.buffer_size == buffer_size
-        assert transport.create is False
+        assert transport.owner is False
         assert transport.request_shm is not None
         assert transport.response_shm is not None
         assert transport.request_mmap is not None
@@ -25,10 +27,12 @@ class TestSharedMemoryTransport:
         assert transport.response_full_sem is not None
 
     @staticmethod
-    def _assert_server_ipc_initialized(transport: SharedMemoryTransport, name: str, buffer_size: int) -> None:
+    def _assert_server_ipc_initialized(
+        transport: SharedMemoryTransport, name: str, buffer_size: int
+    ) -> None:
         assert transport.name == name
         assert transport.buffer_size == buffer_size
-        assert transport.create is True
+        assert transport.owner is True
         assert transport.request_shm is not None
         assert transport.response_shm is not None
         assert transport.request_mmap is not None
@@ -48,36 +52,82 @@ class TestSharedMemoryTransport:
         assert transport.request_full_sem is None
         assert transport.response_empty_sem is None
         assert transport.response_full_sem is None
+        SharedMemoryTransport._assert_no_resources_left_behind(transport.name)
 
     def test_create_and_close(self, buffer_size) -> None:
-        transport = SharedMemoryTransport.create(name="test_create", buffer_size=buffer_size, timeout=1.1)
-        self._assert_server_ipc_initialized(transport=transport, name="test_create", buffer_size=buffer_size)
+        transport = SharedMemoryTransport.create(
+            name="test_create", buffer_size=buffer_size, timeout=1.1
+        )
+        self._assert_server_ipc_initialized(
+            transport=transport, name="test_create", buffer_size=buffer_size
+        )
         assert transport.timeout == 1.1
         transport.close()
         self._assert_ipc_resources_cleaned_up(transport)
 
         # and repeat but with default constructor
         transport = SharedMemoryTransport.create(name="test_create_default")
-        self._assert_server_ipc_initialized(transport=transport, name="test_create_default",
-                                            buffer_size=SharedMemoryTransport.DEFAULT_BUFFER_SIZE)
-        assert transport.timeout is None
+        self._assert_server_ipc_initialized(
+            transport=transport,
+            name="test_create_default",
+            buffer_size=SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
+        )
+        assert transport.timeout == SharedMemoryTransport.DEFAULT_TIMEOUT
         transport.close()
         self._assert_ipc_resources_cleaned_up(transport)
 
     def test_create_and_close_with_context_manager(self, buffer_size) -> None:
-        with SharedMemoryTransport.create(name="test_context", buffer_size=buffer_size) as transport:
-            self._assert_server_ipc_initialized(transport=transport, name="test_context", buffer_size=buffer_size)
+        with SharedMemoryTransport.create(
+            name="test_context", buffer_size=buffer_size
+        ) as transport:
+            self._assert_server_ipc_initialized(
+                transport=transport, name="test_context", buffer_size=buffer_size
+            )
         self._assert_ipc_resources_cleaned_up(transport)
 
-    def test_open_and_close(self, buffer_size) -> None:
+    def test_create_twice_fails(self, server_transport):
+        with pytest.raises(RPCTransportError):
+            SharedMemoryTransport.create(server_transport.name)
+        # but leaves the original untouched
+        self._assert_server_ipc_initialized(
+            transport=server_transport,
+            name=server_transport.name,
+            buffer_size=server_transport.buffer_size,
+        )
 
-        def create_transport_and_wait(name: str, ev: multiprocessing.Event, q: multiprocessing.Queue) -> None:
-            with SharedMemoryTransport.create(name=name, buffer_size=buffer_size) as server_transport:
+    def test_partial_creation_rolls_back_automatically(self):
+        # simulating a situation where the last allocated resource during creation already existed
+        transport_name = "test_partial"
+        sem_name = f"/{transport_name}_resp_full"
+        preexisting_semaphore = None
+        try:
+            preexisting_semaphore = posix_ipc.Semaphore(
+                sem_name,
+                flags=posix_ipc.O_CREX,
+                initial_value=0,
+            )
+            with pytest.raises(RPCTransportError):
+                # tries to create the semaphore "sem.test_partial_resp_full", which already exists
+                SharedMemoryTransport.create(transport_name)
+            # check rollback
+            SharedMemoryTransport._assert_no_resources_left_behind(transport_name, sem_name)
+        finally:
+            if preexisting_semaphore is not None:
+                posix_ipc.unlink_semaphore(sem_name)
+
+    def test_open_and_close(self, buffer_size) -> None:
+        def create_transport_and_wait(
+            name: str, ev: multiprocessing.Event, q: multiprocessing.Queue
+        ) -> None:
+            with SharedMemoryTransport.create(
+                name=name, buffer_size=buffer_size
+            ) as server_transport:
                 ev.set()
                 ev.wait()  # wait for client signal to exit
                 try:
-                    self._assert_server_ipc_initialized(transport=server_transport, name="test_open",
-                                                        buffer_size=buffer_size)
+                    self._assert_server_ipc_initialized(
+                        transport=server_transport, name="test_open", buffer_size=buffer_size
+                    )
                     q.put(None)
                 except AssertionError as e:
                     q.put(str(e))
@@ -85,15 +135,14 @@ class TestSharedMemoryTransport:
         event = multiprocessing.Event()
         queue = multiprocessing.Queue()
         process = multiprocessing.Process(
-            target=create_transport_and_wait,
-            args=("test_open", event, queue)
+            target=create_transport_and_wait, args=("test_open", event, queue)
         )
         process.start()
         # Wait for server side
         event.wait()
 
-        # Open the transport (client side) and close it, with no exceptions and no impact on the ability
-        # of the next client to do the same
+        # Open the transport (client side) and close it, with no exceptions and no impact on the
+        # ability of the next client to do the same
 
         client_transport = SharedMemoryTransport.open(name="test_open", buffer_size=buffer_size)
         client_transport.close()
@@ -138,7 +187,7 @@ class TestSharedMemoryTransport:
         with pytest.raises(RPCTransportError, match="too large"):
             server_transport.send_response(large_data)
 
-    @pytest.mark.parametrize('timeout', [0.1], indirect=True)
+    @pytest.mark.parametrize("timeout", [0.1], indirect=True)
     def test_timeout(self, server_transport, client_transport) -> None:
         """Test timeout when no data available."""
         with pytest.raises(RPCTimeoutError):
@@ -146,7 +195,7 @@ class TestSharedMemoryTransport:
         with pytest.raises(RPCTimeoutError):
             client_transport.receive_response()
 
-    @pytest.mark.parametrize('timeout', [1], indirect=True)
+    @pytest.mark.parametrize("timeout", [1], indirect=True)
     def test_close_doesnt_break_acquire(self, server_transport, timeout) -> None:
         """
         Test that close does not create an SBT exception due to unlinking an ongoing acquired sem

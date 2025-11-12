@@ -3,6 +3,7 @@ from __future__ import annotations
 import mmap
 import struct
 import threading
+from typing import Callable
 
 import posix_ipc
 
@@ -17,34 +18,83 @@ class SharedMemoryTransport:
     - Request buffer: client writes, server reads
     - Response buffer: server writes, client reads
 
+    Timeout Behavior:
+    - All send/receive operations support configurable timeouts
+    - POSIX semaphore acquire() with timeout raises posix_ipc.BusyError on timeout
+    - BusyError is caught and converted to RPCTimeoutError for consistent API
+    - Timeout semantics are platform-dependent but generally reliable on Linux/macOS
+
     See (Stevens & Rago, 2013; Tanenbaum & Bos, 2015)
     """
 
     HEADER_SIZE = 4  # 4 bytes for message length
-    DEFAULT_BUFFER_SIZE = 3145728  # 3MB default buffer
+    DEFAULT_BUFFER_SIZE = 4096  # 4KB default buffer
+    DEFAULT_TIMEOUT = 5.0  # 5 seconds
 
     @staticmethod
     def create(
-            name: str,
-            buffer_size: int = DEFAULT_BUFFER_SIZE,
-            timeout: float | None = None,
+        name: str, buffer_size: int = DEFAULT_BUFFER_SIZE, timeout: float = DEFAULT_TIMEOUT
     ) -> SharedMemoryTransport:
-        return SharedMemoryTransport(name=name, buffer_size=buffer_size, create=True, timeout=timeout)
+        return SharedMemoryTransport(
+            name=name, buffer_size=buffer_size, create=True, timeout=timeout
+        )
 
     @staticmethod
     def open(
-            name: str,
-            buffer_size: int = DEFAULT_BUFFER_SIZE,
-            timeout: float | None = None,
+        name: str,
+        buffer_size: int = DEFAULT_BUFFER_SIZE,
+        timeout: float = DEFAULT_TIMEOUT,
     ) -> SharedMemoryTransport:
-        return SharedMemoryTransport(name=name, buffer_size=buffer_size, create=False, timeout=timeout)
+        return SharedMemoryTransport(
+            name=name, buffer_size=buffer_size, create=False, timeout=timeout
+        )
+
+    @staticmethod
+    def _get_shared_mem_names(name: str) -> tuple[str, str]:
+        return f"/{name}_request", f"/{name}_response"
+
+    @staticmethod
+    def _get_request_semaphore_names(name: str) -> tuple[str, str]:
+        return f"/{name}_req_empty", f"/{name}_req_full"
+
+    @staticmethod
+    def _get_response_semaphore_names(name: str) -> tuple[str, str]:
+        return f"/{name}_resp_empty", f"/{name}_resp_full"
+
+    @staticmethod
+    def _assert_no_resources_left_behind(transport_name: str, *exclusions: str) -> None:
+        """
+        Assert that no IPC resources are left behind for the given transport name.
+        Exclusions represent names to ignore during the verification
+        """
+        for shm_name in SharedMemoryTransport._get_shared_mem_names(transport_name):
+            if shm_name in exclusions:
+                continue  # Skip excluded resources
+            try:
+                shm = posix_ipc.SharedMemory(shm_name, flags=0)  # flags=0 means open only
+                shm.close_fd()
+                raise AssertionError(f"Shared memory {shm_name} still exists")
+            except posix_ipc.ExistentialError:
+                pass  # doesn't exist — good
+
+        for sem_name in SharedMemoryTransport._get_request_semaphore_names(
+            transport_name
+        ) + SharedMemoryTransport._get_response_semaphore_names(transport_name):
+            if sem_name in exclusions:
+                continue  # Skip excluded resources
+            try:
+                sem = posix_ipc.Semaphore(sem_name, flags=0)
+                sem.close()
+                raise AssertionError(f"Semaphore {sem_name} still exists")
+            except posix_ipc.ExistentialError:
+                pass  # doesn't exist — good
 
     def __init__(
-            self,
-            name: str,
-            buffer_size: int = DEFAULT_BUFFER_SIZE,
-            create: bool = False,
-            timeout: float | None = None,
+        self,
+        name: str,
+        buffer_size: int = DEFAULT_BUFFER_SIZE,
+        create: bool = False,
+        timeout: float = DEFAULT_TIMEOUT,
     ):
         """
         Initialize the shared memory transport.
@@ -58,20 +108,22 @@ class SharedMemoryTransport:
         self.name = name
         self.buffer_size = buffer_size
         self.timeout = timeout
-        self.create = create
+        # Avoid shadowing the class staticmethod `create`
+        self.owner = create
 
         # Lock to synchronize cleanup with send/receive operations
         self._lock = threading.RLock()
 
         # Names for POSIX shared memory segments (need / prefix)
-        self.request_shm_name = f"/{name}_request"
-        self.response_shm_name = f"/{name}_response"
+        self.request_shm_name, self.response_shm_name = self._get_shared_mem_names(name)
 
         # Semaphore names (POSIX semaphores need / prefix)
-        self.request_empty_sem_name = f"/{name}_req_empty"  # Counts empty slots
-        self.request_full_sem_name = f"/{name}_req_full"  # Counts full slots
-        self.response_empty_sem_name = f"/{name}_resp_empty"
-        self.response_full_sem_name = f"/{name}_resp_full"
+        self.request_empty_sem_name, self.request_full_sem_name = self._get_request_semaphore_names(
+            name
+        )
+        self.response_empty_sem_name, self.response_full_sem_name = (
+            self._get_response_semaphore_names(name)
+        )
 
         self.request_shm: posix_ipc.SharedMemory | None = None
         self.response_shm: posix_ipc.SharedMemory | None = None
@@ -87,7 +139,7 @@ class SharedMemoryTransport:
 
     def _initialize(self) -> None:
         try:
-            if self.create:
+            if self.owner:
                 # Server creates resources
                 self._create_resources()
             else:
@@ -101,8 +153,9 @@ class SharedMemoryTransport:
         # Create POSIX shared memory segments
         self.request_shm = posix_ipc.SharedMemory(
             self.request_shm_name,
+            # It tells the call to create the named IPC object and fail if it already exists
             flags=posix_ipc.O_CREX,
-            mode=0o600,
+            mode=0o600,  # same as chmod 600. This restricts access to the creating user.
             size=self.buffer_size,
         )
         self.response_shm = posix_ipc.SharedMemory(
@@ -125,6 +178,10 @@ class SharedMemoryTransport:
             mmap.MAP_SHARED,
             mmap.PROT_READ | mmap.PROT_WRITE,
         )
+
+        # Close file descriptors early - mmap keeps the mapping valid
+        self.request_shm.close_fd()
+        self.response_shm.close_fd()
 
         # Create semaphores (initialized to 1 for empty, 0 for full)
         self.request_empty_sem = posix_ipc.Semaphore(
@@ -173,6 +230,10 @@ class SharedMemoryTransport:
             mmap.PROT_READ | mmap.PROT_WRITE,
         )
 
+        # Close file descriptors early - mmap keeps the mapping valid
+        self.request_shm.close_fd()
+        self.response_shm.close_fd()
+
         # Open semaphores
         self.request_empty_sem = posix_ipc.Semaphore(self.request_empty_sem_name)
         self.request_full_sem = posix_ipc.Semaphore(self.request_full_sem_name)
@@ -198,10 +259,7 @@ class SharedMemoryTransport:
                 # Wait for empty slot
                 assert self.request_empty_sem is not None
                 assert self.request_full_sem is not None
-                if self.timeout is not None:
-                    self.request_empty_sem.acquire(timeout=self.timeout)
-                else:
-                    self.request_empty_sem.acquire()
+                self.request_empty_sem.acquire(timeout=self.timeout)
 
                 # Zero-copy write using mmap
                 assert self.request_mmap is not None
@@ -209,6 +267,7 @@ class SharedMemoryTransport:
                 # Write size header (4 bytes)
                 self.request_mmap.seek(0)
                 self.request_mmap.write(struct.pack("I", size))
+                # BusyError is raised by semaphore.acquire(timeout=X) when timeout expires
                 # Zero-copy write of data
                 self.request_mmap.write(data)
 
@@ -246,7 +305,11 @@ class SharedMemoryTransport:
                 self.request_mmap.seek(0)
                 size_bytes = self.request_mmap.read(self.HEADER_SIZE)
                 size = struct.unpack("I", size_bytes)[0]
+                # Validate size
+                if size < 0 or size > self.buffer_size - self.HEADER_SIZE:
+                    raise RPCTransportError(f"Invalid message size: {size}")
                 # Read data
+                # BusyError is raised by semaphore.acquire(timeout=X) when timeout expires
                 data = self.request_mmap.read(size)
 
                 # Signal empty slot
@@ -277,10 +340,7 @@ class SharedMemoryTransport:
                 # Wait for empty slot
                 assert self.response_empty_sem is not None
                 assert self.response_full_sem is not None
-                if self.timeout is not None:
-                    self.response_empty_sem.acquire(timeout=self.timeout)
-                else:
-                    self.response_empty_sem.acquire()
+                self.response_empty_sem.acquire(timeout=self.timeout)
 
                 # Zero-copy write using mmap
                 assert self.response_mmap is not None
@@ -292,6 +352,7 @@ class SharedMemoryTransport:
                 self.response_mmap.write(data)
 
                 # Signal full slot
+                # BusyError is raised by semaphore.acquire(timeout=X) when timeout expires
                 self.response_full_sem.release()
             except posix_ipc.BusyError as e:
                 raise RPCTimeoutError("Timeout sending response") from e
@@ -314,10 +375,7 @@ class SharedMemoryTransport:
                 # Wait for full slot
                 assert self.response_full_sem is not None
                 assert self.response_empty_sem is not None
-                if self.timeout is not None:
-                    self.response_full_sem.acquire(timeout=self.timeout)
-                else:
-                    self.response_full_sem.acquire()
+                self.response_full_sem.acquire(timeout=self.timeout)
 
                 # Zero-copy read using mmap
                 assert self.response_mmap is not None
@@ -325,6 +383,9 @@ class SharedMemoryTransport:
                 self.response_mmap.seek(0)
                 size_bytes = self.response_mmap.read(self.HEADER_SIZE)
                 size = struct.unpack("I", size_bytes)[0]
+                # Validate size
+                if size < 0 or size > self.buffer_size - self.HEADER_SIZE:
+                    raise RPCTransportError(f"Invalid message size: {size}")
                 # Read data
                 data = self.response_mmap.read(size)
 
@@ -341,7 +402,8 @@ class SharedMemoryTransport:
         """Clean up all IPC resources."""
 
         with self._lock:
-            def safe_call(func) -> None:
+
+            def safe_call(func: Callable[[], None]) -> None:
                 """Execute a callable safely, ignoring all exceptions."""
                 try:
                     func()
@@ -353,15 +415,14 @@ class SharedMemoryTransport:
                     safe_call(mmap_obj.close)
 
             def cleanup_shm(shm_obj: posix_ipc.SharedMemory | None, shm_name: str) -> None:
-                if shm_obj:
-                    safe_call(shm_obj.close_fd)
-                    if self.create:
-                        safe_call(lambda: posix_ipc.unlink_shared_memory(shm_name))
+                # Note: FD already closed early after mmap creation
+                if shm_obj and self.owner:
+                    safe_call(lambda: posix_ipc.unlink_shared_memory(shm_name))
 
             def cleanup_sem(sem_obj: posix_ipc.Semaphore | None, sem_name: str) -> None:
                 if sem_obj:
                     safe_call(sem_obj.close)
-                    if self.create:
+                    if self.owner:
                         safe_call(lambda: posix_ipc.unlink_semaphore(sem_name))
 
             # Close mmap objects
