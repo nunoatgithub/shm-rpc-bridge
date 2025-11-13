@@ -11,9 +11,13 @@ Both implementations use process-to-process communication.
 
 from __future__ import annotations
 
+import os
+
+# Allow access to internal APIs for benchmarking
+os.environ["SHM_RPC_BRIDGE_ALLOW_INTERNALS"] = "true"
+
 import logging
 import multiprocessing
-import os
 import sys
 import time
 from concurrent import futures

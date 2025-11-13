@@ -6,6 +6,11 @@ Compares performance of RPC calls across two implementations:
 1. Direct object calls (in-process, baseline)
 2. SHM-RPC between processes
 """
+import os
+
+# Allow access to internal APIs for benchmarking
+os.environ["SHM_RPC_BRIDGE_ALLOW_INTERNALS"] = "true"
+
 import json
 import multiprocessing
 import time
