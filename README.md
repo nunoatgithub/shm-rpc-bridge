@@ -218,7 +218,7 @@ ruff check src tests
 # Type checking
 mypy src
 
-# All of the above in one go, for versions 3.8->3.13 (provided they are installed in the system)
+# All of the above in one go, for versions 3.8+ (provided they are installed in the system)
 tox
 ```
 
