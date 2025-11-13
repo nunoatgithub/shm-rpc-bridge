@@ -155,7 +155,7 @@ def main() -> None:
 
     try:
         # Create RPC client
-        with RPCClient(channel_name, buffer_size=8192, timeout=5.0) as client:
+        with RPCClient(channel_name) as client:
             print("Connected to server!")
 
             if interactive:

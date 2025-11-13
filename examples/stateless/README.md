@@ -15,7 +15,7 @@ to implement a calculator service with RPC over shared memory.
 In one terminal:
 
 ```bash
-python examples/calculator_server.py
+python examples/stateless/calculator_server.py
 ```
 
 The server will start and wait for requests. You should see:
@@ -37,7 +37,7 @@ In another terminal:
 Run a pre-programmed demonstration of all calculator features:
 
 ```bash
-python examples/calculator_client.py
+python examples/stateless/calculator_client.py
 ```
 
 #### Interactive Mode
@@ -45,7 +45,7 @@ python examples/calculator_client.py
 Use the calculator interactively:
 
 ```bash
-python examples/calculator_client.py --interactive
+python examples/stateless/calculator_client.py --interactive
 ```
 
 Then you can perform calculations like:
@@ -81,5 +81,4 @@ The example demonstrates proper error handling:
 
 - Division by zero returns an error
 - Square root of negative numbers returns an error
-- Connection timeouts are handled gracefully
 

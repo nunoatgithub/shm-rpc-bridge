@@ -7,8 +7,6 @@ that can be called remotely via RPC over shared memory.
 """
 
 import logging
-import signal
-import sys
 
 from shm_rpc_bridge import RPCServer
 
@@ -77,7 +75,7 @@ def main() -> None:
     calc = Calculator()
 
     # Create RPC server
-    server = RPCServer(channel_name, buffer_size=8192, timeout=None)
+    server = RPCServer(channel_name)
 
     # Register calculator methods
     server.register("add", calc.add)
@@ -87,26 +85,10 @@ def main() -> None:
     server.register("power", calc.power)
     server.register("sqrt", calc.sqrt)
 
-    logger.info("Registered methods: add, subtract, multiply, divide, power, sqrt")
-
-    # Handle Ctrl+C gracefully
-    def signal_handler(sig, frame):  # type: ignore
-        logger.info("\nShutting down server...")
-        server.stop()
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, signal_handler)
-
     # Start serving requests
     logger.info("Server ready! Waiting for requests...")
     logger.info("Press Ctrl+C to stop.")
-
-    try:
-        server.start()
-    finally:
-        server.close()
-        logger.info("Server stopped.")
-
+    server.start()
 
 if __name__ == "__main__":
     main()

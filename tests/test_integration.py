@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import multiprocessing
 import time
 
@@ -34,6 +36,25 @@ class TestClientServerIntegration:
         server.register("multiply", multiply)
         server.register("divide", divide)
         server.register("greet", greet)
+        server.start()
+
+    @staticmethod
+    def _run_stateful_test_server(channel_name: str) -> None:
+        """Run a test server that keeps state."""
+
+        server = RPCServer(channel_name, timeout=2.0)
+
+        totals: dict[str, float] = {}
+
+        def accumulate(client_id: str, val: float) -> float:
+            totals[client_id] = totals.get(client_id, 0.0) + val
+            return totals[client_id]
+
+        def clear(client_id: str) -> None:
+            del totals[client_id]
+
+        server.register("accumulate", accumulate)
+        server.register("clear", clear)
         server.start()
 
     def test_simple_rpc_call(self) -> None:
@@ -76,7 +97,7 @@ class TestClientServerIntegration:
             server_process.terminate()
 
     def test_rpc_calls_from_diff_clients(self) -> None:
-        channel = "test_multiple_calls"
+        channel = "test_diff_clients"
 
         # Start server
         server_process = multiprocessing.Process(target=self._run_test_server, args=(channel,))
@@ -93,6 +114,36 @@ class TestClientServerIntegration:
             assert result == "Hello, Bob!"
             result = client1.call("greet", name="Alice, again")
             assert result == "Hello, Alice, again!"
+
+        finally:
+            server_process.terminate()
+
+    def test_stateful_rpc_calls(self) -> None:
+        channel = "test_stateful_calls"
+
+        # Start server
+        server_process = multiprocessing.Process(
+            target=self._run_stateful_test_server, args=(channel,)
+        )
+        server_process.start()
+        time.sleep(0.2)
+
+        try:
+            client1 = RPCClient(channel, timeout=2.0)
+            client2 = RPCClient(channel, timeout=2.0)
+
+            result = client1.call("accumulate", client_id="1", val=1)
+            assert result == 1
+            result = client2.call("accumulate", client_id="2", val=2)
+            assert result == 2
+            result = client1.call("accumulate", client_id="1", val=1)
+            assert result == 2
+            result = client2.call("accumulate", client_id="2", val=2)
+            assert result == 4
+            # test clear
+            client2.call("clear", client_id="2")
+            result = client2.call("accumulate", client_id="2", val=1)
+            assert result == 1
 
         finally:
             server_process.terminate()

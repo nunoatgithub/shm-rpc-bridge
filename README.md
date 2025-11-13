@@ -195,12 +195,11 @@ class RPCSerializationError(RPCError):
 Complete working examples are provided in the [`examples/`](examples/) directory:
 
 - **Calculator Service**: A simple calculator with add, subtract, multiply, divide operations
-  - [`calculator_server.py`](examples/calculator_server.py) - Server implementation
-  - [`calculator_client.py`](examples/calculator_client.py) - Client with interactive mode
+- **Accumulator Service**: A stateful accumulator that maintains a running total per client
 
 ## Development
 
-### Running Tests
+### Running Tests, Linting and Type Checking
 
 ```bash
 # Install development dependencies
@@ -209,16 +208,6 @@ pip install -e ".[dev]"
 # Run tests
 pytest
 
-# Run tests with coverage
-pytest --cov=shm_rpc_bridge --cov-report=term-missing
-
-# Run tests across all Python versions
-tox
-```
-
-### Linting and Type Checking
-
-```bash
 # Format code
 ruff format src tests
 
@@ -227,7 +216,11 @@ ruff check src tests
 
 # Type checking
 mypy src
+
+# All of the above in one go, for versions 3.8->3.13 (provided they are installed in the system)
+tox
 ```
+
 
 ## Architecture Details
 
@@ -259,9 +252,11 @@ Four POSIX semaphores per channel:
 
 - **Same-host only**: Shared memory requires processes on the same machine
 - **POSIX systems**: Requires POSIX semaphore support (Linux, macOS, BSD)
-- **Buffer size**: Messages must fit in configured buffer (default 3MB)
+- **Buffer size**: Messages must fit in configured buffer
 - **No encryption**: Data in shared memory is not encrypted (same-host trust model)
 - **Single channel**: Each client-server pair uses one channel (no connection pooling)
+- **No threading**: The server registers signal handlers that automate the deletion of resources on SIGTERM and SIGINT. 
+Due to Python's known limitation about registering signal handlers in threads, the server cannot be spawned in threads, only processes.
 
 ## Troubleshooting
 
