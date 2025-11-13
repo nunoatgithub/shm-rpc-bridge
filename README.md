@@ -12,7 +12,7 @@ Note: I used it as a testbed for comparing communication alternatives when split
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/shm-rpc-bridge.git
+git clone https://github.com/nunoatgithub/shm-rpc-bridge.git
 cd shm-rpc-bridge
 pip install -e .
 ```
