@@ -1,7 +1,8 @@
 # SHM-RPC Bridge
 
 A simple Python library for RPC inter-process communication using shared memory and POSIX semaphores.
-Used as a testbed for comparing communication alternatives when splitting a python monolithic process into multiple processes.
+
+Note: I used it as a testbed for comparing communication alternatives when splitting a python monolithic process into multiple processes.
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -106,7 +107,7 @@ Some benchmarks are included to help understand performance characteristics.
 
 ### IPC Implementation Benchmark
 
-Comparison of direct in-memory calls vs thread-based or process-based use of this library :
+Comparison of direct in-memory calls vs this library :
 
 ```bash
 ./benchmark/run_benchmark.sh
