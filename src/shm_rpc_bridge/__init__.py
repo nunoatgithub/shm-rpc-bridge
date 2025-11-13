@@ -2,7 +2,9 @@
 shm-rpc-bridge: RPC bridge using shared memory IPC and POSIX semaphores.
 """
 
-__version__ = "0.1.0"
+from importlib.metadata import version
+
+__version__ = version("shm-rpc-bridge")
 
 from shm_rpc_bridge.client import RPCClient
 from shm_rpc_bridge.exceptions import (
