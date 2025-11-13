@@ -12,9 +12,16 @@ Note: I used it as a testbed for comparing communication alternatives when split
 ### From Source
 
 ```bash
+# Clone and enter repo
 git clone https://github.com/nunoatgithub/shm-rpc-bridge.git
 cd shm-rpc-bridge
+
+# Option A: pip editable install (simple)
 pip install -e .
+
+# Option B: create a conda env from `environment.yml` (calls pip install)
+conda env create -f `environment.yml` -n shm-rpc-bridge
+conda activate shm-rpc-bridge
 ```
 
 ### Requirements
