@@ -97,7 +97,7 @@ with RPCClient("my_service") as client:
 
 ### Key Components
 
-1. **Shared Memory Buffers**: Two buffers (request/response) for bidirectional communication
+1. **POSIX Shared Memory Buffers**: Two buffers (request/response) for bidirectional communication
 2. **POSIX Semaphores**: Producer-consumer pattern for synchronization
 3. **JSON Serialization**: Simple, flexible message encoding
 
