@@ -20,7 +20,7 @@ cd shm-rpc-bridge
 pip install -e .
 
 # Option B: create a conda env from `environment.yml` (calls pip install)
-conda env create -f `environment.yml` -n shm-rpc-bridge
+conda env create -f environment.yml
 conda activate shm-rpc-bridge
 ```
 
