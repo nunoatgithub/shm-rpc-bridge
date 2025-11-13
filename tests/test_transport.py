@@ -5,8 +5,8 @@ import time
 import posix_ipc
 import pytest
 
+from shm_rpc_bridge._internal.transport import SharedMemoryTransport
 from shm_rpc_bridge.exceptions import RPCTimeoutError, RPCTransportError
-from shm_rpc_bridge.transport import SharedMemoryTransport
 
 
 class TestSharedMemoryTransport:

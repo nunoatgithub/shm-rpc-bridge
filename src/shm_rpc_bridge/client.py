@@ -7,9 +7,9 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from shm_rpc_bridge.data import RPCCodec, RPCRequest
+from shm_rpc_bridge._internal.data import RPCCodec, RPCRequest
+from shm_rpc_bridge._internal.transport import SharedMemoryTransport
 from shm_rpc_bridge.exceptions import RPCError, RPCMethodError
-from shm_rpc_bridge.transport import SharedMemoryTransport
 
 
 class RPCClient:

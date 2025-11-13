@@ -1,8 +1,8 @@
 import pytest
 
 from shm_rpc_bridge import RPCServer, RPCTimeoutError, RPCTransportError
+from shm_rpc_bridge._internal.transport import SharedMemoryTransport
 from shm_rpc_bridge.client import RPCClient
-from shm_rpc_bridge.transport import SharedMemoryTransport
 
 
 class TestRPCClient:

@@ -6,8 +6,8 @@ import time
 import pytest
 
 from shm_rpc_bridge import RPCTransportError
+from shm_rpc_bridge._internal.transport import SharedMemoryTransport
 from shm_rpc_bridge.server import RPCServer
-from shm_rpc_bridge.transport import SharedMemoryTransport
 
 
 class TestRPCServer:

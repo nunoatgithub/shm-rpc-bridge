@@ -1,7 +1,7 @@
 import pytest
 
 from shm_rpc_bridge import RPCServer
-from shm_rpc_bridge.transport import SharedMemoryTransport
+from shm_rpc_bridge._internal.transport import SharedMemoryTransport
 
 
 @pytest.fixture

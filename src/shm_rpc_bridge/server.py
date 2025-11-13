@@ -11,9 +11,9 @@ from typing import Any, Callable
 
 import posix_ipc
 
-from shm_rpc_bridge.data import RPCCodec, RPCRequest, RPCResponse
+from shm_rpc_bridge._internal.data import RPCCodec, RPCRequest, RPCResponse
+from shm_rpc_bridge._internal.transport import SharedMemoryTransport
 from shm_rpc_bridge.exceptions import RPCError, RPCTimeoutError, RPCTransportError
-from shm_rpc_bridge.transport import SharedMemoryTransport
 
 logger = logging.getLogger(__name__)
 

@@ -62,6 +62,7 @@ python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+no_implicit_reexport = true
 
 [[tool.mypy.overrides]]
 module = "posix_ipc"
@@ -77,3 +78,4 @@ timeout = 10
 markers = [
   "no_cleanup: disable automatic cleanup fixture for a test",
 ]
+

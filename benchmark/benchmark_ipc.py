@@ -12,7 +12,7 @@ import time
 import logging
 
 from shm_rpc_bridge import RPCClient, RPCServer
-from shm_rpc_bridge.transport import SharedMemoryTransport
+from shm_rpc_bridge._internal.transport import SharedMemoryTransport
 
 
 # Cleanup helper

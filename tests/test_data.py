@@ -1,6 +1,6 @@
 import pytest
 
-from shm_rpc_bridge.data import JSONSerdes, RPCCodec, RPCRequest, RPCResponse, Serdes
+from shm_rpc_bridge._internal.data import JSONSerdes, RPCCodec, RPCRequest, RPCResponse, Serdes
 from shm_rpc_bridge.exceptions import RPCSerializationError
 
 
