@@ -258,6 +258,7 @@ Four POSIX semaphores per channel:
 - **Single channel**: Each client-server pair uses one channel (no connection pooling)
 - **No threading**: The server registers signal handlers that automate the deletion of resources on SIGTERM and SIGINT. 
 Due to Python's known limitation about registering signal handlers in threads, the server cannot be spawned in threads, only processes.
+- **Synchronous only**: Can't leverage async I/O
 
 ## Troubleshooting
 
