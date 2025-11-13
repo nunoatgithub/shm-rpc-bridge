@@ -34,9 +34,7 @@ This script will:
 - Check your Python version
 - Install required dependencies (posix-ipc, orjson, grpcio, grpcio-tools)
 - Generate gRPC code from the proto file
-- Clean up any leftover resources (shared memory, Unix sockets)
-- Run the benchmark
-- Display results
+- Run the benchmarks
 
 ### Manual Setup
 
@@ -72,24 +70,6 @@ The benchmark will:
 6. Clean up all resources when complete
 
 ## What It Tests
-
-### SHM-RPC Bridge
-- Transport: Shared memory with POSIX semaphores
-- Serialization: JSON
-- Connection: Named shared memory segments
-- Processes: Separate client and server processes
-
-### gRPC (Unix Domain Sockets)
-- Transport: Unix domain sockets (UDS)
-- Serialization: Protocol Buffers
-- Connection: Unix socket file (`/tmp/grpc_benchmark.sock`)
-- Processes: Separate client and server processes
-
-### gRPC (TCP/IP)
-- Transport: TCP/IP on localhost
-- Serialization: Protocol Buffers
-- Connection: TCP socket on port 50051
-- Processes: Separate client and server processes
 
 ## Metrics Reported
 
@@ -143,39 +123,6 @@ python benchmark/vs_grpc/benchmark_vs_grpc.py
 
 ```
 =======================================================================
-SHM-RPC vs gRPC Benchmark Runner
-=======================================================================
-
-Python version: 3.8.20
-
-Installing dependencies...
----
-Installing posix-ipc...
-✓ posix-ipc installed
-Installing grpcio...
-✓ grpcio and grpcio-tools installed
-
-Generating gRPC code from proto file...
-/home/nuno/dev/tools/miniconda3/envs/shm-rpc-bridge/lib/python3.8/site-packages/grpc_tools/protoc.py:25: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
-  import pkg_resources
-✓ gRPC code generated
-
-Cleaning up any leftover shared memory and socket resources...
-POSIX IPC Cleanup Utility
-============================================================
-
-Cleaning up shared memory segments...
-
-Cleaning up semaphores...
-
-============================================================
-Summary:
-  Shared memory segments: 0 removed, 0 failed
-  Semaphores: 0 removed, 0 failed
-  Total: 0 removed, 0 failed
-✓ Cleanup complete
-
-=======================================================================
 Running SHM-RPC vs gRPC benchmark...
 This will take several minutes
 =======================================================================
@@ -195,52 +142,56 @@ Testing SMALL messages (100 bytes)
 ======================================================================
 
 [1/3] Running SHM-RPC benchmark...
-      Completed in 1.61 s
+Server successfully decommissioned.
+      Completed in 5.59 s
 
 [2/3] Running gRPC (UDS) benchmark...
-      Completed in 16.17 s
+      Completed in 27.21 s
 
 [3/3] Running gRPC (TCP) benchmark...
-      Completed in 17.20 s
+      Completed in 33.71 s
 
 ======================================================================
 Testing MEDIUM messages (10000 bytes)
 ======================================================================
 
 [1/3] Running SHM-RPC benchmark...
-      Completed in 2.60 s
+Server successfully decommissioned.
+      Completed in 7.60 s
 
 [2/3] Running gRPC (UDS) benchmark...
-      Completed in 17.38 s
+      Completed in 37.20 s
 
 [3/3] Running gRPC (TCP) benchmark...
-      Completed in 18.48 s
+      Completed in 35.37 s
 
 ======================================================================
 Testing LARGE messages (500000 bytes)
 ======================================================================
 
 [1/3] Running SHM-RPC benchmark...
-      Completed in 45.11 s
+Server successfully decommissioned.
+      Completed in 46.61 s
 
 [2/3] Running gRPC (UDS) benchmark...
-      Completed in 1m 26.56s
+      Completed in 1m 43.11s
 
 [3/3] Running gRPC (TCP) benchmark...
-      Completed in 1m 34.48s
+      Completed in 1m 31.73s
 
 ======================================================================
 Testing BIG messages (2000000 bytes)
 ======================================================================
 
 [1/3] Running SHM-RPC benchmark...
-      Completed in 3m 2.48s
+Server successfully decommissioned.
+      Completed in 3m 15.27s
 
 [2/3] Running gRPC (UDS) benchmark...
-      Completed in 4m 24.44s
+      Completed in 7m 10.13s
 
 [3/3] Running gRPC (TCP) benchmark...
-      Completed in 4m 39.83s
+      Completed in 4m 56.81s
 
 
 ======================================================================
@@ -248,27 +199,33 @@ OVERALL SUMMARY
 ======================================================================
 
 Small (100 bytes):
-  SHM-RPC:    32.26 μs/call
-  gRPC (UDS): 323.38 μs/call
-  gRPC (TCP): 343.91 μs/call
+  SHM-RPC:    111.83 μs/call
+  gRPC (UDS): 544.16 μs/call
+  gRPC (TCP): 674.17 μs/call
 
 Medium (10000 bytes):
-  SHM-RPC:    51.99 μs/call
-  gRPC (UDS): 347.60 μs/call
-  gRPC (TCP): 369.58 μs/call
+  SHM-RPC:    152.05 μs/call
+  gRPC (UDS): 744.07 μs/call
+  gRPC (TCP): 707.48 μs/call
 
 Large (500000 bytes):
-  SHM-RPC:    902.19 μs/call
-  gRPC (UDS): 1731.23 μs/call
-  gRPC (TCP): 1889.54 μs/call
+  SHM-RPC:    932.24 μs/call
+  gRPC (UDS): 2062.30 μs/call
+  gRPC (TCP): 1834.59 μs/call
 
 Big (2000000 bytes):
-  SHM-RPC:    3649.69 μs/call
-  gRPC (UDS): 5288.85 μs/call
-  gRPC (TCP): 5596.50 μs/call
+  SHM-RPC:    3905.34 μs/call
+  gRPC (UDS): 8602.62 μs/call
+  gRPC (TCP): 5936.11 μs/call
 
 ======================================================================
 
+Final cleanup...
+Done!
+
+=======================================================================
+Benchmark complete!
+=======================================================================
 ```
 
 

@@ -54,8 +54,7 @@ class TestClientServerIntegration:
         finally:
             server_process.terminate()
 
-    def test_multiple_rpc_calls(self) -> None:
-        """Test multiple sequential RPC calls."""
+    def test_multiple_rpc_calls_from_same_client(self) -> None:
         channel = "test_multiple_calls"
 
         # Start server
@@ -73,6 +72,28 @@ class TestClientServerIntegration:
 
                 result = client.call("greet", name="Alice")
                 assert result == "Hello, Alice!"
+        finally:
+            server_process.terminate()
+
+    def test_rpc_calls_from_diff_clients(self) -> None:
+        channel = "test_multiple_calls"
+
+        # Start server
+        server_process = multiprocessing.Process(target=self._run_test_server, args=(channel,))
+        server_process.start()
+        time.sleep(0.2)
+
+        try:
+            client1 = RPCClient(channel, timeout=2.0)
+            client2 = RPCClient(channel, timeout=2.0)
+
+            result = client1.call("greet", name="Alice")
+            assert result == "Hello, Alice!"
+            result = client2.call("greet", name="Bob")
+            assert result == "Hello, Bob!"
+            result = client1.call("greet", name="Alice, again")
+            assert result == "Hello, Alice, again!"
+
         finally:
             server_process.terminate()
 

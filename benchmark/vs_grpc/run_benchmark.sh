@@ -54,13 +54,6 @@ cd ../..
 echo "✓ gRPC code generated"
 echo ""
 
-# Clean up any leftover resources
-echo "Cleaning up any leftover shared memory and socket resources..."
-python util/cleanup_ipc.py 2>/dev/null || true
-rm -f /tmp/grpc_benchmark.sock 2>/dev/null || true
-echo "✓ Cleanup complete"
-echo ""
-
 # Run the benchmark
 echo "======================================================================="
 echo "Running SHM-RPC vs gRPC benchmark..."

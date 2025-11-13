@@ -11,6 +11,7 @@ Both implementations use process-to-process communication.
 
 from __future__ import annotations
 
+import logging
 import multiprocessing
 import os
 import sys
@@ -18,6 +19,8 @@ import time
 from concurrent import futures
 
 import grpc
+
+from shm_rpc_bridge.transport import SharedMemoryTransport
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -43,27 +46,7 @@ MESSAGE_SIZES = {
 # ==============================================================================
 
 def cleanup_shm_resources(channel: str) -> None:
-    """Clean up shared memory resources for a channel."""
-    import posix_ipc
-    from multiprocessing import shared_memory
-
-    # Clean up multiprocessing.shared_memory objects
-    for resource_type in ['request', 'response']:
-        shm_name = f"{channel}_{resource_type}"
-        try:
-            shm = shared_memory.SharedMemory(name=shm_name, create=False)
-            shm.close()
-            shm.unlink()
-        except (FileNotFoundError, Exception):
-            pass
-
-    # Clean up POSIX semaphores
-    for sem_type in ['req_empty', 'req_full', 'resp_empty', 'resp_full']:
-        try:
-            posix_ipc.unlink_semaphore(f"/{channel}_{sem_type}")
-        except Exception:
-            pass
-
+    SharedMemoryTransport.Cleanup.delete_resources_with_prefix(channel)
 
 def cleanup_uds_socket(socket_path: str) -> None:
     """Clean up Unix domain socket file."""
@@ -99,7 +82,7 @@ def run_grpc_server(socket_path: str, ready_queue: multiprocessing.Queue) -> Non
     try:
         server.wait_for_termination()
     except KeyboardInterrupt:
-        server.stop(0)
+        server.close(0)
 
 
 def run_grpc_tcp_server(port: int, ready_queue: multiprocessing.Queue) -> None:  # type: ignore
@@ -116,7 +99,7 @@ def run_grpc_tcp_server(port: int, ready_queue: multiprocessing.Queue) -> None: 
     try:
         server.wait_for_termination()
     except KeyboardInterrupt:
-        server.stop(0)
+        server.close(0)
 
 
 def benchmark_grpc(message: str, socket_path: str) -> float:
@@ -229,7 +212,7 @@ def benchmark_grpc_tcp(message: str, port: int = 50051) -> float:
 
 def run_shm_rpc_server(channel: str, ready_queue: multiprocessing.Queue) -> None:  # type: ignore
     """Run SHM-RPC server in a separate process."""
-    server = RPCServer(channel, timeout=10.0)
+    server = RPCServer(channel, buffer_size=2_500_000, timeout=10.0)
 
     # Register echo method
     def echo(message: str) -> str:
@@ -237,21 +220,12 @@ def run_shm_rpc_server(channel: str, ready_queue: multiprocessing.Queue) -> None
 
     server.register("echo", echo)
     ready_queue.put("ready")
-
-    try:
-        server.start()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.close()
+    server.start()
 
 
 def benchmark_shm_rpc(message: str, channel: str) -> float:
     """Benchmark SHM-RPC bridge."""
     ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
-
-    # Clean up any leftover resources
-    cleanup_shm_resources(channel)
 
     # Start server process
     server_process = multiprocessing.Process(
@@ -265,8 +239,7 @@ def benchmark_shm_rpc(message: str, channel: str) -> float:
         ready_queue.get(timeout=5.0)
     except Exception as e:
         server_process.terminate()
-        server_process.join()
-        cleanup_shm_resources(channel)
+        server_process.join(5.0)
         raise RuntimeError(f"SHM-RPC server failed to start: {e}")
 
     # Give server a moment to fully initialize
@@ -274,7 +247,7 @@ def benchmark_shm_rpc(message: str, channel: str) -> float:
 
     try:
         # Create client
-        client = RPCClient(channel, timeout=10.0)
+        client = RPCClient(channel, buffer_size=2_500_000, timeout=10.0)
 
         # Warm-up
         for _ in range(100):
@@ -283,7 +256,7 @@ def benchmark_shm_rpc(message: str, channel: str) -> float:
         # Benchmark
         start = time.perf_counter()
         for _ in range(NUM_ITERATIONS):
-            result = client.call("echo", message=message)
+            _ = client.call("echo", message=message)
         end = time.perf_counter()
 
         client.close()
@@ -292,14 +265,7 @@ def benchmark_shm_rpc(message: str, channel: str) -> float:
     finally:
         # Stop server
         server_process.terminate()
-        server_process.join(timeout=2.0)
-        if server_process.is_alive():
-            server_process.kill()
-            server_process.join()
-
-        # Clean up resources
-        cleanup_shm_resources(channel)
-
+        server_process.join(timeout=5.0)
 
 # ==============================================================================
 # Results Display
@@ -383,6 +349,9 @@ def print_comparison(
 
 def main() -> None:
     """Run the benchmark suite."""
+
+    logging.getLogger("shm_rpc_bridge").setLevel(logging.ERROR)
+
     print("=" * 70)
     print("SHM-RPC Bridge vs gRPC Benchmark")
     print("=" * 70)

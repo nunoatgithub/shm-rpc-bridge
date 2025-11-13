@@ -52,7 +52,7 @@ class TestSharedMemoryTransport:
         assert transport.request_full_sem is None
         assert transport.response_empty_sem is None
         assert transport.response_full_sem is None
-        SharedMemoryTransport._assert_no_resources_left_behind(transport.name)
+        SharedMemoryTransport.Cleanup.assert_no_resources_left_behind(transport.name)
 
     def test_create_and_close(self, buffer_size) -> None:
         transport = SharedMemoryTransport.create(
@@ -110,7 +110,7 @@ class TestSharedMemoryTransport:
                 # tries to create the semaphore "sem.test_partial_resp_full", which already exists
                 SharedMemoryTransport.create(transport_name)
             # check rollback
-            SharedMemoryTransport._assert_no_resources_left_behind(transport_name, sem_name)
+            SharedMemoryTransport.Cleanup.assert_no_resources_left_behind(transport_name, sem_name)
         finally:
             if preexisting_semaphore is not None:
                 posix_ipc.unlink_semaphore(sem_name)

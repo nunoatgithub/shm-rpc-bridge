@@ -12,7 +12,8 @@ from shm_rpc_bridge import RPCServer
 def echo(message: str) -> str:
     return message
 
-def run_server(name: str, buffer_size:int, iterations:int):
+
+def run_server(name: str, buffer_size: int, iterations: int):
     server = RPCServer(name, buffer_size=buffer_size, timeout=10.0)
     server.register("echo", echo)
 
@@ -40,6 +41,7 @@ def run_server(name: str, buffer_size:int, iterations:int):
     stats.print_stats(20)  # Print top 20 functions by cumulative time
     print("=" * 80)
     print("Server profile saved to server_profile.prof")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:

@@ -9,8 +9,10 @@ import signal
 from enum import Enum
 from typing import Any, Callable
 
+import posix_ipc
+
 from shm_rpc_bridge.data import RPCCodec, RPCRequest, RPCResponse
-from shm_rpc_bridge.exceptions import RPCError, RPCTimeoutError
+from shm_rpc_bridge.exceptions import RPCError, RPCTimeoutError, RPCTransportError
 from shm_rpc_bridge.transport import SharedMemoryTransport
 
 logger = logging.getLogger(__name__)
@@ -25,13 +27,42 @@ class RPCServer:
         CLOSED = "CLOSED"
         ERROR = "ERROR"
 
+    class _ServerInterruptionError(RPCTransportError):
+        """Raised when server receive method is interrupted by ANY signal
+        (there is no api available to detect only SIGTERM or SIGINT)."""
+
+        pass
+
     @staticmethod
     def __running__() -> bool:
         return True
 
     @staticmethod
     def _assert_no_resources_left_behind(server_name: str) -> None:
-        SharedMemoryTransport._assert_no_resources_left_behind(server_name)
+        SharedMemoryTransport.Cleanup.assert_no_resources_left_behind(server_name)
+
+    @staticmethod
+    def _is_caused_by_a_signal(exc: BaseException) -> bool:
+        """Return True if *exc* or any exception in its `__cause__` chain is a
+        `posix_ipc.SignalError`
+        """
+        cause = getattr(exc, "__cause__", None)
+        while cause is not None:
+            if isinstance(cause, posix_ipc.SignalError):
+                # the following code always returns False, making inviable to
+                # discriminate sigterm and sigint only
+                #     # Some implementations expose the signal number under different names.
+                #     signo = getattr(cause, "signo", None)
+                #     if signo is None:
+                #         signo = getattr(cause, "signum", None)
+                #     if signo is None:
+                #         signo = getattr(cause, "sig", None)
+                #     if signo in (signal.SIGTERM, signal.SIGINT):
+                #         return True
+                #     return False
+                return True
+            cause = getattr(cause, "__cause__", None)
+        return False
 
     def __init__(
         self,
@@ -87,6 +118,8 @@ class RPCServer:
         try:
             while self._running:
                 self._handle_request()
+        except self._ServerInterruptionError:
+            logger.debug("Server interrupted", exc_info=True)
         except Exception:
             logger.error("Server error", exc_info=True)
             raise
@@ -102,7 +135,6 @@ class RPCServer:
             finally:
                 self.transport = None
 
-        # Unregister signal/atexit handlers managed by the helper
         if self._signal_handler is not None:
             self._signal_handler.stop()
 
@@ -135,8 +167,14 @@ class RPCServer:
         assert self.transport is not None
         try:
             return self.transport.receive_request()
+        # ignore as the normal consequence of waiting for a request that hasn't arrived yet
         except RPCTimeoutError:
             return None
+        except Exception as e:
+            if self._is_caused_by_a_signal(e):
+                raise self._ServerInterruptionError from e
+            else:
+                raise e
 
     def _handle_request(self) -> RPCResponse | None:
         data = self._receive_request()
@@ -163,8 +201,8 @@ class RPCServer:
             logger.debug(f"Request {request.request_id} succeeded")
 
         except Exception as e:
-            error_msg = f"{type(e).__name__}: {str(e)}"
             logger.error(f"Request {request.request_id} failed", exc_info=True)
+            error_msg = f"{type(e).__name__}: {str(e)}"
             response = RPCResponse(
                 request_id=request.request_id,
                 result=None,

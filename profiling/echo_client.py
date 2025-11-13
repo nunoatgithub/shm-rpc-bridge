@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from shm_rpc_bridge import RPCClient
 
 
-def run_client(name: str, buffer_size:int, iterations:int):
+def run_client(name: str, buffer_size: int, iterations: int):
     client = RPCClient(name, buffer_size=buffer_size, timeout=10.0)
     message = "x" * 2_000_000
     profiler = cProfile.Profile()
