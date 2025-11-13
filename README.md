@@ -2,8 +2,6 @@
 
 A simple Python library for RPC inter-process communication using shared memory and POSIX semaphores.
 
-Note: I used it as a testbed for comparing communication alternatives when splitting a python monolithic process into multiple processes.
-
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -27,7 +25,7 @@ conda activate shm-rpc-bridge
 ### Requirements
 
 - Python 3.8 or higher
-- Linux/Unix with POSIX shared memory support
+- Linux/MacOS/BSD with POSIX shared memory and semaphore support
 - `posix-ipc` library (installed automatically)
 - `orjson` library (installed automatically)
 
@@ -105,7 +103,7 @@ with RPCClient("my_service") as client:
 ### Key Components
 
 1. **POSIX Shared Memory Buffers**: Two buffers (request/response) for bidirectional communication
-2. **POSIX Semaphores**: Producer-consumer pattern for synchronization
+2. **POSIX Semaphores**: Producer-consumer pattern for synchronization. There are no user-space synchronization primitives commom to Linux and MacOS. Hence this lib uses a kernel space primitive that exists in both.
 3. **JSON Serialization**: Simple, flexible message encoding
 
 ## Benchmarks
