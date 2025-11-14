@@ -22,6 +22,16 @@ conda env create -f environment.yml
 conda activate shm-rpc-bridge
 ```
 
+#### Futexes on Linux
+
+On Linux, instead of POSIX semaphores, futexes can be used. However, they offer no measurable benefit to this library in
+terms of performance or stability and may actually be less stable. Use with caution; the installer toggles to this mode
+automatically when constructed with
+
+```bash
+USE_FUTEX=1 pip install -e .
+```
+
 ### Requirements
 
 - Python 3.8 or higher
@@ -103,7 +113,7 @@ with RPCClient("my_service") as client:
 ### Key Components
 
 1. **POSIX Shared Memory Buffers**: Two buffers (request/response) for bidirectional communication
-2. **POSIX Semaphores**: Producer-consumer pattern for synchronization. There are no user-space synchronization primitives commom to Linux and MacOS. Hence this lib uses a kernel space primitive that exists in both.
+2. **POSIX Semaphores**: Producer-consumer pattern for synchronization
 3. **JSON Serialization**: Simple, flexible message encoding
 
 ## Benchmarks
@@ -137,24 +147,24 @@ Comparison of this library with gRPC (Unix domain sockets and TCP/IP):
 ```python
 class RPCServer:
     def __init__(
-        self,
-        name: str,
-        buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
-        timeout: float | None = None
+            self,
+            name: str,
+            buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
+            timeout: float | None = None
     )
-    
+
     def register(self, name: str, func: Callable) -> None:
         """Register a method for RPC calls."""
-    
+
     def register_function(self, func: Callable) -> Callable:
         """Decorator to register a method."""
-    
+
     def start(self) -> None:
         """Start the server (blocking)."""
-    
+
     def stop(self) -> None:
         """Stop the server."""
-    
+
     def close(self) -> None:
         """Clean up resources."""
 ```
@@ -164,15 +174,15 @@ class RPCServer:
 ```python
 class RPCClient:
     def __init__(
-        self,
-        name: str,
-        buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
-        timeout: float | None = 5.0
+            self,
+            name: str,
+            buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
+            timeout: float | None = 5.0
     )
-    
+
     def call(self, method: str, **params) -> Any:
         """Make an RPC call to the server."""
-    
+
     def close(self) -> None:
         """Clean up resources."""
 ```
@@ -183,14 +193,18 @@ class RPCClient:
 class RPCError(Exception):
     """Base exception for RPC errors."""
 
+
 class RPCTimeoutError(RPCError):
     """Raised when an operation times out."""
+
 
 class RPCMethodError(RPCError):
     """Raised when a remote method call fails."""
 
+
 class RPCTransportError(RPCError):
     """Raised when transport layer fails."""
+
 
 class RPCSerializationError(RPCError):
     """Raised when serialization/deserialization fails."""
@@ -227,7 +241,6 @@ mypy src
 tox
 ```
 
-
 ## Architecture Details
 
 ### Memory Layout
@@ -249,6 +262,7 @@ Response Buffer (Server → Client):
 ### Synchronization
 
 Four POSIX semaphores per channel:
+
 - `request_empty`: Counts empty slots in request buffer
 - `request_full`: Counts full slots in request buffer
 - `response_empty`: Counts empty slots in response buffer
@@ -261,8 +275,9 @@ Four POSIX semaphores per channel:
 - **Buffer size**: Messages must fit in configured buffer
 - **No encryption**: Data in shared memory is not encrypted (same-host trust model)
 - **Single channel**: Each client-server pair uses one channel (no connection pooling)
-- **No threading**: The server registers signal handlers that automate the deletion of resources on SIGTERM and SIGINT. 
-Due to Python's known limitation about registering signal handlers in threads, the server cannot be spawned in threads, only processes.
+- **No threading**: The server registers signal handlers that automate the deletion of resources on SIGTERM and SIGINT.
+  Due to Python's known limitation about registering signal handlers in threads, the server cannot be spawned in
+  threads, only processes.
 - **Synchronous only**: Can't leverage async I/O
 
 ## Troubleshooting

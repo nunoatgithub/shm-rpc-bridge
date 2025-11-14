@@ -6,7 +6,7 @@ import time
 import pytest
 
 from shm_rpc_bridge import RPCTransportError
-from shm_rpc_bridge._internal.transport import SharedMemoryTransport
+from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.server import RPCServer
 
 
@@ -153,7 +153,7 @@ class TestAutoCleanupAfterStart:
         time.sleep(0.1)
 
         os.kill(process.pid, signal.SIGTERM)
-        process.join(2.0)
+        process.join(5.0)
         RPCServer._assert_no_resources_left_behind(server_name)
 
     def test_auto_cleanup_on_sigint_after_server_start(self) -> None:

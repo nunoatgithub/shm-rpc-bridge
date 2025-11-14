@@ -1,7 +1,7 @@
 import pytest
 
 from shm_rpc_bridge import RPCServer
-from shm_rpc_bridge._internal.transport import SharedMemoryTransport
+from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def buffer_size():
 @pytest.fixture
 def timeout(request):
     """Timeout fixture that supports indirect parametrization."""
-    return getattr(request, "param", None)
+    return getattr(request, "param", 1.0)
 
 
 @pytest.fixture
@@ -46,6 +46,6 @@ def cleanup_test_resources(request):
     if request.node.get_closest_marker("no_cleanup"):
         yield
         return
-    SharedMemoryTransport.Cleanup.delete_resources_with_prefix("test")
+    SharedMemoryTransport.delete_resources()
     yield
-    SharedMemoryTransport.Cleanup.delete_resources_with_prefix("test")
+    SharedMemoryTransport.delete_resources()

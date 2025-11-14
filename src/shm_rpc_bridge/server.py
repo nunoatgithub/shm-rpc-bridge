@@ -9,10 +9,8 @@ import signal
 from enum import Enum
 from typing import Any, Callable
 
-import posix_ipc
-
 from shm_rpc_bridge._internal.data import RPCCodec, RPCRequest, RPCResponse
-from shm_rpc_bridge._internal.transport import SharedMemoryTransport
+from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.exceptions import RPCError, RPCTimeoutError, RPCTransportError
 
 logger = logging.getLogger(__name__)
@@ -39,30 +37,7 @@ class RPCServer:
 
     @staticmethod
     def _assert_no_resources_left_behind(server_name: str) -> None:
-        SharedMemoryTransport.Cleanup.assert_no_resources_left_behind(server_name)
-
-    @staticmethod
-    def _is_caused_by_a_signal(exc: BaseException) -> bool:
-        """Return True if *exc* or any exception in its `__cause__` chain is a
-        `posix_ipc.SignalError`
-        """
-        cause = getattr(exc, "__cause__", None)
-        while cause is not None:
-            if isinstance(cause, posix_ipc.SignalError):
-                # the following code always returns False, making inviable to
-                # discriminate sigterm and sigint only
-                #     # Some implementations expose the signal number under different names.
-                #     signo = getattr(cause, "signo", None)
-                #     if signo is None:
-                #         signo = getattr(cause, "signum", None)
-                #     if signo is None:
-                #         signo = getattr(cause, "sig", None)
-                #     if signo in (signal.SIGTERM, signal.SIGINT):
-                #         return True
-                #     return False
-                return True
-            cause = getattr(cause, "__cause__", None)
-        return False
+        SharedMemoryTransport.assert_no_resources_left_behind(server_name)
 
     def __init__(
         self,
@@ -171,7 +146,7 @@ class RPCServer:
         except RPCTimeoutError:
             return None
         except Exception as e:
-            if self._is_caused_by_a_signal(e):
+            if SharedMemoryTransport.is_caused_by_a_signal(e):
                 raise self._ServerInterruptionError from e
             else:
                 raise e

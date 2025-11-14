@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "shm-rpc-bridge"
 version = "0.1.0"
-description = "RPC bridge using shared memory IPC and POSIX semaphores"
+description = "RPC bridge using shared memory IPC"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}

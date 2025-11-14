@@ -24,7 +24,7 @@ from concurrent import futures
 
 import grpc
 
-from shm_rpc_bridge._internal.transport import SharedMemoryTransport
+from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -50,7 +50,7 @@ MESSAGE_SIZES = {
 # ==============================================================================
 
 def cleanup_shm_resources(channel: str) -> None:
-    SharedMemoryTransport.Cleanup.delete_resources_with_prefix(channel)
+    SharedMemoryTransport.delete_resources()
 
 def cleanup_uds_socket(socket_path: str) -> None:
     """Clean up Unix domain socket file."""
@@ -72,7 +72,7 @@ class EchoServicer(echo_pb2_grpc.EchoServiceServicer):
         return echo_pb2.EchoResponse(message=request.message)
 
 
-def run_grpc_server(socket_path: str, ready_queue: multiprocessing.Queue) -> None:  # type: ignore
+def run_grpc_server(socket_path: str, server_ready: multiprocessing.Event) -> None:  # type: ignore
     """Run gRPC server in a separate process."""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     echo_pb2_grpc.add_EchoServiceServicer_to_server(EchoServicer(), server)
@@ -81,7 +81,7 @@ def run_grpc_server(socket_path: str, ready_queue: multiprocessing.Queue) -> Non
     server.add_insecure_port(f'unix://{socket_path}')
     server.start()
 
-    ready_queue.put("ready")
+    server_ready.set()
 
     try:
         server.wait_for_termination()
@@ -89,7 +89,7 @@ def run_grpc_server(socket_path: str, ready_queue: multiprocessing.Queue) -> Non
         server.close(0)
 
 
-def run_grpc_tcp_server(port: int, ready_queue: multiprocessing.Queue) -> None:  # type: ignore
+def run_grpc_tcp_server(port: int, server_ready: multiprocessing.Event) -> None:  # type: ignore
     """Run gRPC server over TCP/IP in a separate process."""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     echo_pb2_grpc.add_EchoServiceServicer_to_server(EchoServicer(), server)
@@ -98,7 +98,7 @@ def run_grpc_tcp_server(port: int, ready_queue: multiprocessing.Queue) -> None: 
     server.add_insecure_port(f'localhost:{port}')
     server.start()
 
-    ready_queue.put("ready")
+    server_ready.set()
 
     try:
         server.wait_for_termination()
@@ -108,7 +108,7 @@ def run_grpc_tcp_server(port: int, ready_queue: multiprocessing.Queue) -> None: 
 
 def benchmark_grpc(message: str, socket_path: str) -> float:
     """Benchmark gRPC over Unix domain sockets."""
-    ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
+    server_ready: multiprocessing.Event = multiprocessing.Event()  # type: ignore
 
     # Clean up socket if it exists
     cleanup_uds_socket(socket_path)
@@ -116,13 +116,13 @@ def benchmark_grpc(message: str, socket_path: str) -> float:
     # Start server process
     server_process = multiprocessing.Process(
         target=run_grpc_server,
-        args=(socket_path, ready_queue),
+        args=(socket_path, server_ready),
     )
     server_process.start()
 
     # Wait for server to be ready
     try:
-        ready_queue.get(timeout=5.0)
+        server_ready.wait(timeout=5.0)
     except Exception as e:
         server_process.terminate()
         server_process.join()
@@ -163,18 +163,18 @@ def benchmark_grpc(message: str, socket_path: str) -> float:
 
 def benchmark_grpc_tcp(message: str, port: int = 50051) -> float:
     """Benchmark gRPC over TCP/IP."""
-    ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
+    server_ready: multiprocessing.Event = multiprocessing.Event()  # type: ignore
 
     # Start server process
     server_process = multiprocessing.Process(
         target=run_grpc_tcp_server,
-        args=(port, ready_queue),
+        args=(port, server_ready),
     )
     server_process.start()
 
     # Wait for server to be ready
     try:
-        ready_queue.get(timeout=5.0)
+        server_ready.wait(timeout=5.0)
     except Exception as e:
         server_process.terminate()
         server_process.join()
@@ -214,8 +214,11 @@ def benchmark_grpc_tcp(message: str, port: int = 50051) -> float:
 # SHM-RPC Implementation
 # ==============================================================================
 
-def run_shm_rpc_server(channel: str, ready_queue: multiprocessing.Queue) -> None:  # type: ignore
+def run_shm_rpc_server(channel: str, server_ready: multiprocessing.Event) -> None:  # type: ignore
     """Run SHM-RPC server in a separate process."""
+
+    logging.getLogger("shm_rpc_bridge").setLevel(logging.ERROR)
+
     server = RPCServer(channel, buffer_size=2_500_000, timeout=10.0)
 
     # Register echo method
@@ -223,24 +226,24 @@ def run_shm_rpc_server(channel: str, ready_queue: multiprocessing.Queue) -> None
         return message
 
     server.register("echo", echo)
-    ready_queue.put("ready")
+    server_ready.set()
     server.start()
 
 
 def benchmark_shm_rpc(message: str, channel: str) -> float:
     """Benchmark SHM-RPC bridge."""
-    ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
+    server_ready: multiprocessing.Event = multiprocessing.Event()  # type: ignore
 
     # Start server process
     server_process = multiprocessing.Process(
         target=run_shm_rpc_server,
-        args=(channel, ready_queue),
+        args=(channel, server_ready),
     )
     server_process.start()
 
     # Wait for server to be ready
     try:
-        ready_queue.get(timeout=5.0)
+        server_ready.wait(timeout=5.0)
     except Exception as e:
         server_process.terminate()
         server_process.join(5.0)

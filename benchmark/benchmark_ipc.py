@@ -8,21 +8,22 @@ Compares performance of RPC calls across two implementations:
 """
 import os
 
+import orjson
+
 # Allow access to internal APIs for benchmarking
 os.environ["SHM_RPC_BRIDGE_ALLOW_INTERNALS"] = "true"
 
-import json
 import multiprocessing
 import time
 import logging
 
 from shm_rpc_bridge import RPCClient, RPCServer
-from shm_rpc_bridge._internal.transport import SharedMemoryTransport
+from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 
 
 # Cleanup helper
 def ensure_clean_slate(channel: str) -> None:
-    SharedMemoryTransport.Cleanup.delete_resources_with_prefix(channel)
+    SharedMemoryTransport.delete_resources()
 
 
 # ==============================================================================
@@ -93,7 +94,7 @@ def _create_large_message() -> dict:
 NUM_ITERATIONS = 100_000
 NUM_ITERATIONS_LARGE = 10_000  # Fewer iterations for large messages
 LARGE_MESSAGE = _create_large_message()  # Large message for benchmarking
-LARGE_MESSAGE_SERIALIZED_SIZE = len(json.dumps(LARGE_MESSAGE))
+LARGE_MESSAGE_SERIALIZED_SIZE = len(orjson.dumps(LARGE_MESSAGE)) + 500
 
 # ==============================================================================
 # Benchmark 1: Direct Object Calls (Baseline)
@@ -115,14 +116,16 @@ def benchmark_direct_calls() -> float:
 # Benchmark 2: SHM-RPC Between Processes
 # ==============================================================================
 
-def run_server_process(channel: str, ready_queue: multiprocessing.Queue) -> None:  # type: ignore
+def run_server_process(channel: str, server_ready: multiprocessing.Event) -> None:  # type: ignore
     """Run RPC server in a separate process."""
+    logging.getLogger("shm_rpc_bridge").setLevel(logging.ERROR)
+
     server = RPCServer(channel, timeout=10.0)
     service = CalculatorService()
     server.register("add", service.add)
 
     # Signal that server is ready
-    ready_queue.put("ready")
+    server_ready.set()
     # Start server (will run until terminated)
     server.start()
 
@@ -130,7 +133,7 @@ def run_server_process(channel: str, ready_queue: multiprocessing.Queue) -> None
 def benchmark_processes() -> float:
     """Benchmark RPC calls between processes using shared memory."""
     channel = "bench_small"
-    ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
+    server_ready: multiprocessing.Event = multiprocessing.Event()  # type: ignore
 
     # Clean up any leftover resources first
     ensure_clean_slate(channel)
@@ -138,13 +141,13 @@ def benchmark_processes() -> float:
     # Start server process
     server_process = multiprocessing.Process(
         target=run_server_process,
-        args=(channel, ready_queue),
+        args=(channel, server_ready),
     )
     server_process.start()
 
     # Wait for server to be ready
     try:
-        ready_queue.get(timeout=5.0)
+        server_ready.wait(timeout=5.0)
     except Exception as e:
         server_process.terminate()
         server_process.join()
@@ -197,13 +200,15 @@ def benchmark_large_direct(message_size: str = "large") -> float:
 # ==============================================================================
 
 def run_data_server_process(channel: str,
-                            ready_queue: multiprocessing.Queue) -> None:  # type: ignore
+                            server_ready: multiprocessing.Event) -> None:  # type: ignore
     """Run data processing server in a separate process."""
+    logging.getLogger("shm_rpc_bridge").setLevel(logging.ERROR)
+
     server = RPCServer(channel, buffer_size=LARGE_MESSAGE_SERIALIZED_SIZE, timeout=10.0)
     service = DataService()
     server.register("process_data", service.process_data)
 
-    ready_queue.put("ready")
+    server_ready.set()
 
     try:
         server.start()
@@ -214,18 +219,18 @@ def run_data_server_process(channel: str,
 def benchmark_large_processes(message_size: str = "large") -> float:
     """Benchmark RPC with large messages between processes."""
     channel = "bench_large"
-    ready_queue: multiprocessing.Queue = multiprocessing.Queue()  # type: ignore
+    server_ready: multiprocessing.Event = multiprocessing.Event()  # type: ignore
 
     ensure_clean_slate(channel)
 
     server_process = multiprocessing.Process(
         target=run_data_server_process,
-        args=(channel, ready_queue),
+        args=(channel, server_ready),
     )
     server_process.start()
 
     try:
-        ready_queue.get(timeout=5.0)
+        server_ready.wait(timeout=5.0)
     except Exception as e:
         server_process.terminate()
         server_process.join()
@@ -419,7 +424,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # Ensure we're using 'spawn' method for multiprocessing
-    # This is more similar to how processes would be used in production
     multiprocessing.set_start_method('spawn', force=True)
     main()

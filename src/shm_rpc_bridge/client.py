@@ -8,7 +8,7 @@ import uuid
 from typing import Any
 
 from shm_rpc_bridge._internal.data import RPCCodec, RPCRequest
-from shm_rpc_bridge._internal.transport import SharedMemoryTransport
+from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.exceptions import RPCError, RPCMethodError
 
 
