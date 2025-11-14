@@ -25,7 +25,7 @@ conda activate shm-rpc-bridge
 #### Futexes on Linux
 
 On Linux, instead of POSIX semaphores, futexes can be used. However, they offer no measurable benefit to this library in
-terms of performance or stability and may actually be less stable. Use with caution; the installer toggles to this mode
+terms of performance or stability and may actually be less stable. Use with caution; the code base toggles to this mode
 automatically when constructed with
 
 ```bash
