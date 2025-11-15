@@ -31,7 +31,7 @@ class TestRPCClient:
             match=r"Failed to initialize transport: No shared memory exists with the "
             r"specified name",
         ):
-            RPCClient("test_nonexistent")
+            RPCClient("t_na")
 
     def test_create_with_capacity_diff_than_server_fails(self, server) -> None:
         with pytest.raises(
@@ -41,7 +41,7 @@ class TestRPCClient:
             RPCClient(server.transport.name, server.transport.buffer_size + 1)
 
     def test_timeout_when_server_not_running(self) -> None:
-        channel = "test_client_timeout"
+        channel = "t_cto"
         with RPCServer(channel, timeout=1.0):
             client = RPCClient(channel, timeout=0.1)
             with pytest.raises(RPCTimeoutError):

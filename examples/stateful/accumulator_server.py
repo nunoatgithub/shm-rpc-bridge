@@ -33,7 +33,7 @@ class Accumulator:
 
 def main() -> None:
     """Run the accumulator RPC server."""
-    channel_name = "accumulator_rpc"
+    channel_name = "acc_rpc"
 
     logger.info("Starting Accumulator RPC Server...")
     logger.info(f"Channel: {channel_name}")

@@ -3,6 +3,7 @@ import pytest
 from shm_rpc_bridge import RPCServer
 from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 
+_TEST_CHANNEL = "t"
 
 @pytest.fixture
 def buffer_size():
@@ -18,7 +19,7 @@ def timeout(request):
 @pytest.fixture
 def server_transport(buffer_size, timeout):
     transport = SharedMemoryTransport.create(
-        name="test_channel", buffer_size=buffer_size, timeout=timeout
+        name=_TEST_CHANNEL, buffer_size=buffer_size, timeout=timeout
     )
     yield transport
     transport.close()
@@ -27,7 +28,7 @@ def server_transport(buffer_size, timeout):
 @pytest.fixture
 def client_transport(buffer_size, timeout):
     transport = SharedMemoryTransport.open(
-        name="test_channel", buffer_size=buffer_size, timeout=timeout
+        name=_TEST_CHANNEL, buffer_size=buffer_size, timeout=timeout
     )
     yield transport
     transport.close()
@@ -35,7 +36,7 @@ def client_transport(buffer_size, timeout):
 
 @pytest.fixture
 def server(buffer_size, timeout):
-    server = RPCServer(name="test_server", buffer_size=buffer_size, timeout=timeout)
+    server = RPCServer(name=_TEST_CHANNEL, buffer_size=buffer_size, timeout=timeout)
     yield server
     server.close()
 

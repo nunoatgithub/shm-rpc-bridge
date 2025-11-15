@@ -12,8 +12,8 @@ from shm_rpc_bridge.server import RPCServer
 
 class TestRPCServer:
     def test_create_and_close(self):
-        server = RPCServer("test_init", 100, 1.0)
-        assert server.transport.name == "test_init"
+        server = RPCServer("t_init", 100, 1.0)
+        assert server.transport.name == "t_init"
         assert server.transport.buffer_size == 100
         assert server.transport.timeout == 1.0
         assert server._status() == RPCServer.Status.INITIALIZED
@@ -24,8 +24,8 @@ class TestRPCServer:
         server.close()
 
         # default constructor, using context manager protocol
-        with RPCServer("test_init_default") as server:
-            assert server.transport.name == "test_init_default"
+        with RPCServer("t_init_d") as server:
+            assert server.transport.name == "t_init_d"
             assert server.transport.buffer_size == SharedMemoryTransport.DEFAULT_BUFFER_SIZE
             assert server.transport.timeout == SharedMemoryTransport.DEFAULT_TIMEOUT
 
@@ -57,7 +57,7 @@ class TestAutoCleanupBeforeStart:
     """Tests resource management before server starts"""
 
     def test_no_auto_cleanup_on_normal_termination_before_server_start(self) -> None:
-        server_name = "test_exit_ok"
+        server_name = "t_exit_nok"
 
         process_started = multiprocessing.Event()
         can_exit = multiprocessing.Event()
@@ -82,7 +82,7 @@ class TestAutoCleanupBeforeStart:
             RPCServer._assert_no_resources_left_behind(server_name)
 
     def test_auto_cleanup_on_sigterm_before_server_start(self) -> None:
-        server_name = "test_sigterm_ok"
+        server_name = "t_sigterm_ok"
 
         process_started = multiprocessing.Event()
         can_exit = multiprocessing.Event()
@@ -107,7 +107,7 @@ class TestAutoCleanupBeforeStart:
         RPCServer._assert_no_resources_left_behind(server_name)
 
     def test_auto_cleanup_on_sigint_before_server_start(self) -> None:
-        server_name = "test_sigint_ok"
+        server_name = "t_sigint_ok"
 
         process_started = multiprocessing.Event()
         can_exit = multiprocessing.Event()
@@ -137,7 +137,7 @@ class TestAutoCleanupAfterStart:
     """Tests resource management after server starts"""
 
     def test_auto_cleanup_on_sigterm_after_server_start(self) -> None:
-        server_name = "test_sigterm_after_start_ok"
+        server_name = "t_sigterm_asok"
 
         process_started = multiprocessing.Event()
 
@@ -157,7 +157,7 @@ class TestAutoCleanupAfterStart:
         RPCServer._assert_no_resources_left_behind(server_name)
 
     def test_auto_cleanup_on_sigint_after_server_start(self) -> None:
-        server_name = "test_sigint_after_start_ok"
+        server_name = "t_sigint_asok"
 
         process_started = multiprocessing.Event()
 

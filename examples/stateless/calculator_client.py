@@ -146,7 +146,7 @@ def interactive_mode(client: RPCClient) -> None:
 
 def main() -> None:
     """Run the calculator RPC client."""
-    channel_name = "calculator_rpc"
+    channel_name = "calc_rpc"
 
     # Check command line arguments
     interactive = "--interactive" in sys.argv or "-i" in sys.argv

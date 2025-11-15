@@ -59,7 +59,7 @@ class TestClientServerIntegration:
 
     def test_simple_rpc_call(self) -> None:
         """Test a simple RPC call from client to server."""
-        channel = "test_simple_call"
+        channel = "t_sc"
 
         # Start server in separate process
         server_process = multiprocessing.Process(target=self._run_test_server, args=(channel,))
@@ -76,7 +76,7 @@ class TestClientServerIntegration:
             server_process.terminate()
 
     def test_multiple_rpc_calls_from_same_client(self) -> None:
-        channel = "test_multiple_calls"
+        channel = "t_mc"
 
         # Start server
         server_process = multiprocessing.Process(target=self._run_test_server, args=(channel,))
@@ -97,7 +97,7 @@ class TestClientServerIntegration:
             server_process.terminate()
 
     def test_rpc_calls_from_diff_clients(self) -> None:
-        channel = "test_diff_clients"
+        channel = "t_dc"
 
         # Start server
         server_process = multiprocessing.Process(target=self._run_test_server, args=(channel,))
@@ -119,7 +119,7 @@ class TestClientServerIntegration:
             server_process.terminate()
 
     def test_stateful_rpc_calls(self) -> None:
-        channel = "test_stateful_calls"
+        channel = "t_sc"
 
         # Start server
         server_process = multiprocessing.Process(
@@ -150,7 +150,7 @@ class TestClientServerIntegration:
 
     def test_server_side_error_propagation(self) -> None:
         """Test that server-side errors are properly propagated to client."""
-        channel = "test_method_error"
+        channel = "t_me"
 
         server_process = multiprocessing.Process(target=self._run_test_server, args=(channel,))
         server_process.start()
@@ -166,7 +166,7 @@ class TestClientServerIntegration:
 
     def test_unknown_method_error(self) -> None:
         """Test that calling unknown method raises appropriate error."""
-        channel = "test_unknown_method"
+        channel = "t_um"
 
         server_process = multiprocessing.Process(target=self._run_test_server, args=(channel,))
         server_process.start()

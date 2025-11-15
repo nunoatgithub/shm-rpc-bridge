@@ -120,7 +120,7 @@ class SharedMemoryTransportABC(ABC):
     # ------------------------------------------------------------------
     # Cleanup and Other Utilities
     # ------------------------------------------------------------------
-    _TRANSPORT_PREFIX: ClassVar[str] = "shm_rpc_bridge"
+    _TRANSPORT_PREFIX: ClassVar[str] = "srb"
 
     @staticmethod
     @abstractmethod

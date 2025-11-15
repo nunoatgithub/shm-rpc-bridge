@@ -117,7 +117,7 @@ def interactive_mode(client: RPCClient) -> None:
 
 def main() -> None:
     """Run the accumulator RPC client."""
-    channel_name = "accumulator_rpc"
+    channel_name = "acc_rpc"
 
     # Check command line arguments
     interactive = "--interactive" in sys.argv or "-i" in sys.argv

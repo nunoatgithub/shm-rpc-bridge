@@ -8,24 +8,27 @@ import pytest
 from shm_rpc_bridge._internal.transport_posix import SharedMemoryTransportPosix
 from shm_rpc_bridge.exceptions import RPCTimeoutError, RPCTransportError
 
+# -------------------------------------------------------------------------------------
+# overriding two fixture definitions here to force SharedMemoryTransportPosix usage
+# -------------------------------------------------------------------------------------
+from conftest import _TEST_CHANNEL
 
 @pytest.fixture
 def server_transport(buffer_size, timeout):
     transport = SharedMemoryTransportPosix.create(
-        name="test_channel", buffer_size=buffer_size, timeout=timeout
+        name=_TEST_CHANNEL, buffer_size=buffer_size, timeout=timeout
     )
     yield transport
     transport.close()
-
 
 @pytest.fixture
 def client_transport(buffer_size, timeout):
     transport = SharedMemoryTransportPosix.open(
-        name="test_channel", buffer_size=buffer_size, timeout=timeout
+        name=_TEST_CHANNEL, buffer_size=buffer_size, timeout=timeout
     )
     yield transport
     transport.close()
-
+# -------------------------------------------------------------------------------------
 
 class TestSharedMemoryTransportPosix:
     @staticmethod
@@ -74,20 +77,20 @@ class TestSharedMemoryTransportPosix:
 
     def test_create_and_close(self, buffer_size) -> None:
         transport = SharedMemoryTransportPosix.create(
-            name="test_create", buffer_size=buffer_size, timeout=1.1
+            name="t_cre", buffer_size=buffer_size, timeout=1.1
         )
         self._assert_server_ipc_initialized(
-            transport=transport, name="test_create", buffer_size=buffer_size
+            transport=transport, name="t_cre", buffer_size=buffer_size
         )
         assert transport.timeout == 1.1
         transport.close()
         self._assert_ipc_resources_cleaned_up(transport)
 
         # and repeat but with default constructor
-        transport = SharedMemoryTransportPosix.create(name="test_create_default")
+        transport = SharedMemoryTransportPosix.create(name="t_cre_d")
         self._assert_server_ipc_initialized(
             transport=transport,
-            name="test_create_default",
+            name="t_cre_d",
             buffer_size=SharedMemoryTransportPosix.DEFAULT_BUFFER_SIZE,
         )
         assert transport.timeout == SharedMemoryTransportPosix.DEFAULT_TIMEOUT
@@ -96,10 +99,10 @@ class TestSharedMemoryTransportPosix:
 
     def test_create_and_close_with_context_manager(self, buffer_size) -> None:
         with SharedMemoryTransportPosix.create(
-            name="test_context", buffer_size=buffer_size
+            name="t_ctx", buffer_size=buffer_size
         ) as transport:
             self._assert_server_ipc_initialized(
-                transport=transport, name="test_context", buffer_size=buffer_size
+                transport=transport, name="t_ctx", buffer_size=buffer_size
             )
         self._assert_ipc_resources_cleaned_up(transport)
 
@@ -115,7 +118,7 @@ class TestSharedMemoryTransportPosix:
 
     def test_partial_creation_rolls_back_automatically(self):
         # simulating a situation where the last allocated resource during creation already existed
-        transport_name = "test_partial"
+        transport_name = "t_part"
         sem_name = SharedMemoryTransportPosix._get_response_semaphore_names(transport_name)[1]
         preexisting_semaphore = None
         try:
@@ -125,7 +128,7 @@ class TestSharedMemoryTransportPosix:
                 initial_value=0,
             )
             with pytest.raises(RPCTransportError):
-                # tries to create the semaphore "sem.test_partial_resp_full", which already exists
+                # tries to create the semaphore "sem.t_part_resp_full", which already exists
                 SharedMemoryTransportPosix.create(transport_name)
             # check rollback
             SharedMemoryTransportPosix.assert_no_resources_left_behind(transport_name, sem_name)
@@ -144,7 +147,7 @@ class TestSharedMemoryTransportPosix:
                 ev.wait()  # wait for client signal to exit
                 try:
                     self._assert_server_ipc_initialized(
-                        transport=server_transport, name="test_open", buffer_size=buffer_size
+                        transport=server_transport, name="t_open", buffer_size=buffer_size
                     )
                     q.put(None)
                 except AssertionError as e:
@@ -153,7 +156,7 @@ class TestSharedMemoryTransportPosix:
         event = multiprocessing.Event()
         queue = multiprocessing.Queue()
         process = multiprocessing.Process(
-            target=create_transport_and_wait, args=("test_open", event, queue)
+            target=create_transport_and_wait, args=("t_open", event, queue)
         )
         process.start()
         # Wait for server side
@@ -163,12 +166,12 @@ class TestSharedMemoryTransportPosix:
         # ability of the next client to do the same
 
         client_transport = SharedMemoryTransportPosix.open(
-            name="test_open", buffer_size=buffer_size
+            name="t_open", buffer_size=buffer_size
         )
         client_transport.close()
 
         client_transport = SharedMemoryTransportPosix.open(
-            name="test_open", buffer_size=buffer_size
+            name="t_open", buffer_size=buffer_size
         )
         client_transport.close()
 

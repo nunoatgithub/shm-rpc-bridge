@@ -66,7 +66,7 @@ class Calculator:
 
 def main() -> None:
     """Run the calculator RPC server."""
-    channel_name = "calculator_rpc"
+    channel_name = "calc_rpc"
 
     logger.info("Starting Calculator RPC Server...")
     logger.info(f"Channel: {channel_name}")

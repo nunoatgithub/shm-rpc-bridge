@@ -369,7 +369,7 @@ def main() -> None:
     # Paths for temporary resources
     socket_path = "/tmp/grpc_benchmark.sock"
     tcp_port = 50051
-    shm_channel = "shm_benchmark"
+    shm_channel = "shm_bench"
 
     # Initial cleanup
     print("Cleaning up any leftover resources...")
