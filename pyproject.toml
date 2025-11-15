@@ -76,10 +76,4 @@ python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v"
 timeout = 10
-markers = [
-  "no_cleanup: disable automatic cleanup fixture for a test",
-]
-
-[tool.pytest_env]
-SHM_RPC_BRIDGE_ALLOW_INTERNALS = "true"
 
