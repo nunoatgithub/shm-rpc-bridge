@@ -139,31 +139,38 @@ class TestSharedMemoryTransportPosix:
             if preexisting_semaphore is not None:
                 posix_ipc.unlink_semaphore(sem_name)
 
-    def test_open_and_close(self, buffer_size) -> None:
-        def create_transport_and_wait(
-            name: str, ev: multiprocessing.Event, q: multiprocessing.Queue
-        ) -> None:
-            with SharedMemoryTransportPosix.create(
-                name=name, buffer_size=buffer_size
-            ) as server_transport:
-                ev.set()
-                ev.wait()  # wait for client signal to exit
-                try:
-                    self._assert_server_ipc_initialized(
-                        transport=server_transport, name="t_open", buffer_size=buffer_size
-                    )
-                    q.put(None)
-                except AssertionError as e:
-                    q.put(str(e))
+    @staticmethod
+    def _create_transport_and_wait(
+        name: str,
+        buffer_size: int,
+        ready_event: multiprocessing.Event,
+        shutdown_event: multiprocessing.Event,
+        q: multiprocessing.Queue
+    ) -> None:
+        with SharedMemoryTransportPosix.create(
+            name=name, buffer_size=buffer_size
+        ) as server_transport:
+            ready_event.set()  # signal server is ready
+            shutdown_event.wait()  # wait for client signal to exit
+            try:
+                TestSharedMemoryTransportPosix._assert_server_ipc_initialized(
+                    transport=server_transport, name="t_open", buffer_size=buffer_size
+                )
+                q.put(None)
+            except AssertionError as e:
+                q.put(str(e))
 
-        event = multiprocessing.Event()
+    def test_open_and_close(self, buffer_size) -> None:
+        ready_event = multiprocessing.Event()
+        shutdown_event = multiprocessing.Event()
         queue = multiprocessing.Queue()
         process = multiprocessing.Process(
-            target=create_transport_and_wait, args=("t_open", event, queue)
+            target=TestSharedMemoryTransportPosix._create_transport_and_wait,
+            args=("t_open", buffer_size, ready_event, shutdown_event, queue),
         )
         process.start()
         # Wait for server side
-        event.wait()
+        ready_event.wait()
 
         # Open the transport (client side) and close it, with no exceptions and no impact on the
         # ability of the next client to do the same
@@ -175,7 +182,7 @@ class TestSharedMemoryTransportPosix:
         client_transport.close()
 
         # Signal server to exit
-        event.set()
+        shutdown_event.set()
         process.join()
         server_result = queue.get()
         assert server_result is None, f"Assertion failed in server: {server_result}"

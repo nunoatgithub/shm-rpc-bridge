@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 from shm_rpc_bridge import RPCServer
@@ -5,11 +7,12 @@ from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 
 _TEST_CHANNEL = "t"
 
+linux = pytest.mark.skipif(not sys.platform.startswith("linux"), reason="Linux-only test")
+macos = pytest.mark.skipif(sys.platform != "darwin", reason="macOS-only test")
 
 @pytest.fixture
 def buffer_size():
     return 4096
-
 
 @pytest.fixture
 def timeout(request):
@@ -44,10 +47,6 @@ def server(buffer_size, timeout):
 
 @pytest.fixture(autouse=True)
 def cleanup_test_resources(request):
-    # skip automatic cleanup when test is marked with `@pytest.mark.no_cleanup`
-    if request.node.get_closest_marker("no_cleanup"):
-        yield
-        return
     SharedMemoryTransport.delete_resources()
     yield
     SharedMemoryTransport.delete_resources()

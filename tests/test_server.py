@@ -4,11 +4,11 @@ import signal
 import time
 
 import pytest
+from conftest import linux, macos
 
 from shm_rpc_bridge import RPCTransportError
 from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.server import RPCServer
-
 
 class TestRPCServer:
     def test_create_and_close(self):
@@ -64,9 +64,9 @@ class TestAutoCleanupBeforeStart:
         started.set()
         can_exit.wait()
 
-    def test_no_auto_cleanup_on_normal_termination_before_server_start(self) -> None:
-        server_name = "t_exit_nok"
-
+    @linux
+    def test_no_auto_cleanup_on_normal_exit_before_server_start(self) -> None:
+        server_name = "t_exnok_lin"
         process_started = multiprocessing.Event()
         can_exit = multiprocessing.Event()
         process = multiprocessing.Process(
@@ -74,11 +74,24 @@ class TestAutoCleanupBeforeStart:
         )
         process.start()
         process_started.wait(2.0)
-
         can_exit.set()
         process.join(2.0)
         with pytest.raises(AssertionError):
             RPCServer._assert_no_resources_left_behind(server_name)
+
+    @macos
+    def test_auto_cleanup_on_normal_exit_before_server_start(self) -> None:
+        server_name = "t_exok_mac"
+        process_started = multiprocessing.Event()
+        can_exit = multiprocessing.Event()
+        process = multiprocessing.Process(
+            target=self._create_rpc_server, args=(server_name, process_started, can_exit)
+        )
+        process.start()
+        process_started.wait(2.0)
+        can_exit.set()
+        process.join(2.0)
+        RPCServer._assert_no_resources_left_behind(server_name)
 
     def test_auto_cleanup_on_sigterm_before_server_start(self) -> None:
         server_name = "t_sigterm_ok"
