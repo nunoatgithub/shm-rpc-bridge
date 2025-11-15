@@ -39,18 +39,30 @@ jobs:
   test:
     name: Test on ${{ matrix.os }}${{ matrix.variant && format(' ({0})', matrix.variant) || '' }} - Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
-    if: |
-      (github.event_name != 'workflow_dispatch') ||
-      ((inputs.os_filter == 'all' || inputs.os_filter == matrix.os) &&
-       (inputs.python_filter == 'all' || inputs.python_filter == matrix.python-version))
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
-        variant: ['']
         include:
-          # Add Linux futex variant jobs
+          # Linux POSIX variant (6 jobs)
+          - os: ubuntu-latest
+            python-version: '3.8'
+            variant: 'posix'
+          - os: ubuntu-latest
+            python-version: '3.9'
+            variant: 'posix'
+          - os: ubuntu-latest
+            python-version: '3.10'
+            variant: 'posix'
+          - os: ubuntu-latest
+            python-version: '3.11'
+            variant: 'posix'
+          - os: ubuntu-latest
+            python-version: '3.12'
+            variant: 'posix'
+          - os: ubuntu-latest
+            python-version: '3.13'
+            variant: 'posix'
+          # Linux futex variant (6 jobs)
           - os: ubuntu-latest
             python-version: '3.8'
             variant: 'futex'
@@ -69,6 +81,25 @@ jobs:
           - os: ubuntu-latest
             python-version: '3.13'
             variant: 'futex'
+          # macOS POSIX variant (6 jobs)
+          - os: macos-latest
+            python-version: '3.8'
+            variant: 'posix'
+          - os: macos-latest
+            python-version: '3.9'
+            variant: 'posix'
+          - os: macos-latest
+            python-version: '3.10'
+            variant: 'posix'
+          - os: macos-latest
+            python-version: '3.11'
+            variant: 'posix'
+          - os: macos-latest
+            python-version: '3.12'
+            variant: 'posix'
+          - os: macos-latest
+            python-version: '3.13'
+            variant: 'posix'
 
     steps:
     - name: Checkout code

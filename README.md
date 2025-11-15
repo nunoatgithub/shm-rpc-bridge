@@ -288,7 +288,58 @@ python util/cleanup_ipc.py
 
 ## Development
 
-The project supports Python versions 3.8 through 3.13 on Linux and macOS. Due to platform limitations, macOS cannot be containerized in Docker, so multi-OS testing is accomplished through GitHub Actions CI workflows.
+### System Dependencies
+
+In addition to Python dependencies, workflow validation requires `act` (a tool to run GitHub Actions locally):
+
+**Installation:**
+
+```bash
+# Linux/macOS
+curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+
+# Or via package managers:
+# Homebrew (macOS/Linux)
+brew install act
+
+# Chocolatey (Windows)
+choco install act-cli
+```
+
+**Verify:**
+```bash
+act --version
+```
+
+**Note:** `act` is NOT a Python package and cannot be installed via `pip` or listed in `pyproject.toml`. Each developer must install it separately on their system.
+
+**Learn more:** [https://nektosact.com/installation/](https://nektosact.com/installation/)
+
+### Running Tests, Linting and Type Checking
+
+```bash
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Format code
+ruff format src tests
+
+# Lint code
+ruff check src tests
+
+# Type checking
+mypy src
+
+# All of the above in one go, for versions 3.8+ (provided they are installed in the system)
+tox
+```
+
+### Multi-OS Testing and CI
+
+The project supports Python versions 3.8 through 3.13 on Linux and macOS. The Linux implementation has two transport variants: POSIX-based and futex-based.
 
 #### Automated CI
 
@@ -341,14 +392,15 @@ The CI tests both Linux transport variants (POSIX and futex) as well as the macO
 
 #### Quick Reference
 
-| Task                         | Command                                             |
-|------------------------------|-----------------------------------------------------|
-| Run all tests locally        | `pytest`                                            |
-| Test single Python version   | `tox -e py38` (or py39, py310, etc.)                |
-| Lint code                    | `tox -e lint`                                       |
-| Type check                   | `tox -e type`                                       |
-| Format code                  | `tox -e format`                                     |
-| Run full test matrix locally | `tox`                                               |
+| Task                         | Command                                           |
+|------------------------------|---------------------------------------------------|
+| Run all tests locally        | `pytest`                                          |
+| Test single Python version   | `tox -e py38` (or py39, py310, etc.)              |
+| Lint code                    | `tox -e lint`                                     |
+| Type check                   | `tox -e type`                                     |
+| Format code                  | `tox -e format`                                   |
+| Validate CI workflows        | `tox -e workflow`                               |
+| Run full test matrix locally | `tox`                                             |
 | Test on macOS (from Linux)   | Push branch → manually trigger CI with macOS filter |
 | Test on Linux (from macOS)   | Push branch → manually trigger CI with Linux filter |
 

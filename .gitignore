@@ -39,5 +39,8 @@ venv.bak/
 dmypy.json
 .ruff_cache/
 
+# Local binaries (e.g., act)
+bin/
+
 /profiling/client_profile.prof
 /profiling/server_profile.prof
