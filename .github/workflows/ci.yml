@@ -137,8 +137,13 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results-${{ matrix.os }}${{ matrix.variant && format('-{0}', matrix.variant) || '' }}-py${{ matrix.python-version }}
-        path: .tox/*/log/
+        name: test-results-${{ matrix.os }}-${{ matrix.variant }}-py${{ matrix.python-version }}
+        path: |
+          .tox/**/log/
+          .tox/**/*.log
+          .pytest_cache/
+        if-no-files-found: ignore
+        retention-days: 7
 
   lint:
     name: Lint
