@@ -299,26 +299,9 @@ In addition to Python dependencies, workflow validation requires `act` (a tool t
 
 **Installation:**
 
-```bash
-# Linux/macOS
-curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
-
-# Or via package managers:
-# Homebrew (macOS/Linux)
-brew install act
-
-# Chocolatey (Windows)
-choco install act-cli
-```
-
-**Verify:**
-```bash
-act --version
-```
+See https://nektosact.com/installation/
 
 **Note:** `act` is NOT a Python package and cannot be installed via `pip` or listed in `pyproject.toml`. Each developer must install it separately on their system.
-
-**Learn more:** [https://nektosact.com/installation/](https://nektosact.com/installation/)
 
 ### Multi-OS Testing and CI
 
