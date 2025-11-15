@@ -119,7 +119,7 @@ with RPCClient("my_service") as client:
 2. **POSIX Semaphores**: Producer-consumer pattern for synchronization
 3. **JSON Serialization**: Given the generic nature of the RPC contract proposed by this API, json (with orjson) is the
    absolute best possible. I tested most of the alternatives (e.g.protobuf, capnproto, cysimdjson), but the presence
-   of a generic blobs in the request and response always forces a generic form of serialization before serializing the root 
+   of generic blobs in the request and response always forces a generic form of serialization before serializing the root 
    object, so unless you use json for the entire structure, it's always json + other proto on top => slower. 
    If you consider other more specialized RPC contracts, a fork from this repo with a quicker data layer would 
    certainly make sense. 
