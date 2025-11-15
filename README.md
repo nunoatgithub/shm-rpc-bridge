@@ -314,7 +314,7 @@ The project supports Python versions 3.8 through 3.13 on Linux and macOS. The Li
 The CI runs automatically on every push to `master` and tests all Python versions (3.8-3.13) on both `ubuntu-latest` and `macos-latest`.
 
 **Jobs:**
-- `test`: Runs pytest across all OS/Python combinations (12 jobs total)
+- `test`: Runs pytest across all OS/Python combinations
 - `lint`: Runs ruff linting once (Python 3.8, Linux only)
 - `type-check`: Runs mypy type checking once (Python 3.8, Linux only)
 
