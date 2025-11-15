@@ -10,6 +10,7 @@ from shm_rpc_bridge import RPCTransportError
 from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.server import RPCServer
 
+
 class TestRPCServer:
     def test_create_and_close(self):
         server = RPCServer("t_init", 100, 1.0)

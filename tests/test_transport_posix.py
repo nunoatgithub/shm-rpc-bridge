@@ -145,7 +145,7 @@ class TestSharedMemoryTransportPosix:
         buffer_size: int,
         ready_event: multiprocessing.Event,
         shutdown_event: multiprocessing.Event,
-        q: multiprocessing.Queue
+        q: multiprocessing.Queue,
     ) -> None:
         with SharedMemoryTransportPosix.create(
             name=name, buffer_size=buffer_size

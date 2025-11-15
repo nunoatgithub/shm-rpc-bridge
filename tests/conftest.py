@@ -10,9 +10,11 @@ _TEST_CHANNEL = "t"
 linux = pytest.mark.skipif(not sys.platform.startswith("linux"), reason="Linux-only test")
 macos = pytest.mark.skipif(sys.platform != "darwin", reason="macOS-only test")
 
+
 @pytest.fixture
 def buffer_size():
     return 4096
+
 
 @pytest.fixture
 def timeout(request):
