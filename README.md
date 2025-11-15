@@ -49,12 +49,15 @@ from shm_rpc_bridge import RPCServer
 # Create server
 server = RPCServer("my_service")
 
+
 # Register methods
 def add(a: int, b: int) -> int:
     return a + b
 
+
 def greet(name: str) -> str:
     return f"Hello, {name}!"
+
 
 server.register("add", add)
 server.register("greet", greet)
@@ -73,7 +76,7 @@ with RPCClient("my_service") as client:
     # Make RPC calls
     result = client.call("add", a=5, b=3)
     print(f"5 + 3 = {result}")  # Output: 5 + 3 = 8
-    
+
     greeting = client.call("greet", name="Alice")
     print(greeting)  # Output: Hello, Alice!
 ```
@@ -114,7 +117,12 @@ with RPCClient("my_service") as client:
 
 1. **POSIX Shared Memory Buffers**: Two buffers (request/response) for bidirectional communication
 2. **POSIX Semaphores**: Producer-consumer pattern for synchronization
-3. **JSON Serialization**: Simple, flexible message encoding
+3. **JSON Serialization**: Given the generic nature of the RPC contract proposed by this API, json (with orjson) is the
+   absolute best possible. I tested most of the alternatives (e.g.protobuf, capnproto, cysimdjson), but the presence
+   of a generic blobs in the request and response always forces a generic form of serialization before serializing the root 
+   object, so unless you use json for the entire structure, it's always json + other proto on top => slower. 
+   If you consider other more specialized RPC contracts, a fork from this repo with a quicker data layer would 
+   certainly make sense. 
 
 ## Benchmarks
 
