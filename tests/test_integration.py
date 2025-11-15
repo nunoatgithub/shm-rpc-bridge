@@ -119,7 +119,7 @@ class TestClientServerIntegration:
             server_process.terminate()
 
     def test_stateful_rpc_calls(self) -> None:
-        channel = "t_sc"
+        channel = "t_stc"
 
         # Start server
         server_process = multiprocessing.Process(
@@ -150,7 +150,7 @@ class TestClientServerIntegration:
 
     def test_server_side_error_propagation(self) -> None:
         """Test that server-side errors are properly propagated to client."""
-        channel = "t_me"
+        channel = "t_ep"
 
         server_process = multiprocessing.Process(target=self._run_test_server, args=(channel,))
         server_process.start()

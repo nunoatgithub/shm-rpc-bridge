@@ -5,6 +5,7 @@ from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 
 _TEST_CHANNEL = "t"
 
+
 @pytest.fixture
 def buffer_size():
     return 4096

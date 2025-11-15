@@ -56,22 +56,21 @@ class TestRPCServer:
 class TestAutoCleanupBeforeStart:
     """Tests resource management before server starts"""
 
+    @staticmethod
+    def _create_rpc_server(
+        name: str, started: multiprocessing.Event, can_exit: multiprocessing.Event
+    ) -> None:
+        _ = RPCServer(name)  # assigning to prevent premature gc
+        started.set()
+        can_exit.wait()
+
     def test_no_auto_cleanup_on_normal_termination_before_server_start(self) -> None:
         server_name = "t_exit_nok"
 
         process_started = multiprocessing.Event()
         can_exit = multiprocessing.Event()
-
-        def _create_rpc_server(
-            started: multiprocessing.Event, can_exit: multiprocessing.Event
-        ) -> None:
-            _ = RPCServer(server_name)  # assigning to prevent premature gc
-            started.set()
-            # block until clean exit signal
-            can_exit.wait()
-
         process = multiprocessing.Process(
-            target=_create_rpc_server, args=(process_started, can_exit)
+            target=self._create_rpc_server, args=(server_name, process_started, can_exit)
         )
         process.start()
         process_started.wait(2.0)
@@ -86,17 +85,8 @@ class TestAutoCleanupBeforeStart:
 
         process_started = multiprocessing.Event()
         can_exit = multiprocessing.Event()
-
-        def _create_rpc_server(
-            started: multiprocessing.Event, can_exit: multiprocessing.Event
-        ) -> None:
-            RPCServer(server_name)
-            started.set()
-            # block indefinitely
-            can_exit.wait()
-
         process = multiprocessing.Process(
-            target=_create_rpc_server, args=(process_started, can_exit)
+            target=self._create_rpc_server, args=(server_name, process_started, can_exit)
         )
         process.start()
         process_started.wait(2.0)
@@ -111,16 +101,8 @@ class TestAutoCleanupBeforeStart:
 
         process_started = multiprocessing.Event()
         can_exit = multiprocessing.Event()
-
-        def _create_rpc_server(
-            started: multiprocessing.Event, can_exit: multiprocessing.Event
-        ) -> None:
-            RPCServer(server_name)
-            started.set()
-            can_exit.wait()
-
         process = multiprocessing.Process(
-            target=_create_rpc_server, args=(process_started, can_exit)
+            target=self._create_rpc_server, args=(server_name, process_started, can_exit)
         )
         process.start()
         process_started.wait(2.0)
@@ -136,17 +118,23 @@ class TestAutoCleanupBeforeStart:
 class TestAutoCleanupAfterStart:
     """Tests resource management after server starts"""
 
+    @staticmethod
+    def _create_rpc_server(name: str, started: multiprocessing.Event) -> None:
+        server = RPCServer(name)
+        started.set()
+        server.start()
+
     def test_auto_cleanup_on_sigterm_after_server_start(self) -> None:
         server_name = "t_sigterm_asok"
 
         process_started = multiprocessing.Event()
-
-        def _create_rpc_server(started: multiprocessing.Event) -> None:
-            server = RPCServer(server_name)
-            started.set()
-            server.start()
-
-        process = multiprocessing.Process(target=_create_rpc_server, args=(process_started,))
+        process = multiprocessing.Process(
+            target=self._create_rpc_server,
+            args=(
+                server_name,
+                process_started,
+            ),
+        )
         process.start()
         process_started.wait(2.0)
 
@@ -160,13 +148,13 @@ class TestAutoCleanupAfterStart:
         server_name = "t_sigint_asok"
 
         process_started = multiprocessing.Event()
-
-        def _create_rpc_server(started: multiprocessing.Event) -> None:
-            server = RPCServer(server_name)
-            started.set()
-            server.start()
-
-        process = multiprocessing.Process(target=_create_rpc_server, args=(process_started,))
+        process = multiprocessing.Process(
+            target=self._create_rpc_server,
+            args=(
+                server_name,
+                process_started,
+            ),
+        )
         process.start()
         process_started.wait(2.0)
 

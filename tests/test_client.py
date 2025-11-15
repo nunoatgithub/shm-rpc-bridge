@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 from shm_rpc_bridge import RPCServer, RPCTimeoutError, RPCTransportError
@@ -34,11 +36,13 @@ class TestRPCClient:
             RPCClient("t_na")
 
     def test_create_with_capacity_diff_than_server_fails(self, server) -> None:
+        # macOS is only sensitive to page differences (16KB pages in Apple silicon)
+        difference = 16384 if sys.platform == "darwin" else 1
         with pytest.raises(
             RPCTransportError,
-            match=r"Failed to initialize transport: mmap length is greater than file size",
+            match=r".*shared memory size mismatch.*",
         ):
-            RPCClient(server.transport.name, server.transport.buffer_size + 1)
+            RPCClient(server.transport.name, server.transport.buffer_size + difference)
 
     def test_timeout_when_server_not_running(self) -> None:
         channel = "t_cto"

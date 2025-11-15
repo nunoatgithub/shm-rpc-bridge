@@ -288,7 +288,12 @@ python util/cleanup_ipc.py
 
 ## Development
 
-### System Dependencies
+### Install development dependencies
+```bash
+pip install -e ".[dev]"
+```
+
+### Other Dependencies
 
 In addition to Python dependencies, workflow validation requires `act` (a tool to run GitHub Actions locally):
 
@@ -314,28 +319,6 @@ act --version
 **Note:** `act` is NOT a Python package and cannot be installed via `pip` or listed in `pyproject.toml`. Each developer must install it separately on their system.
 
 **Learn more:** [https://nektosact.com/installation/](https://nektosact.com/installation/)
-
-### Running Tests, Linting and Type Checking
-
-```bash
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Format code
-ruff format src tests
-
-# Lint code
-ruff check src tests
-
-# Type checking
-mypy src
-
-# All of the above in one go, for versions 3.8+ (provided they are installed in the system)
-tox
-```
 
 ### Multi-OS Testing and CI
 

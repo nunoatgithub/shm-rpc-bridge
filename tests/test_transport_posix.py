@@ -5,13 +5,14 @@ import time
 import posix_ipc
 import pytest
 
-from shm_rpc_bridge._internal.transport_posix import SharedMemoryTransportPosix
-from shm_rpc_bridge.exceptions import RPCTimeoutError, RPCTransportError
-
 # -------------------------------------------------------------------------------------
 # overriding two fixture definitions here to force SharedMemoryTransportPosix usage
 # -------------------------------------------------------------------------------------
 from conftest import _TEST_CHANNEL
+
+from shm_rpc_bridge._internal.transport_posix import SharedMemoryTransportPosix
+from shm_rpc_bridge.exceptions import RPCTimeoutError, RPCTransportError
+
 
 @pytest.fixture
 def server_transport(buffer_size, timeout):
@@ -21,6 +22,7 @@ def server_transport(buffer_size, timeout):
     yield transport
     transport.close()
 
+
 @pytest.fixture
 def client_transport(buffer_size, timeout):
     transport = SharedMemoryTransportPosix.open(
@@ -28,7 +30,10 @@ def client_transport(buffer_size, timeout):
     )
     yield transport
     transport.close()
+
+
 # -------------------------------------------------------------------------------------
+
 
 class TestSharedMemoryTransportPosix:
     @staticmethod
@@ -98,9 +103,7 @@ class TestSharedMemoryTransportPosix:
         self._assert_ipc_resources_cleaned_up(transport)
 
     def test_create_and_close_with_context_manager(self, buffer_size) -> None:
-        with SharedMemoryTransportPosix.create(
-            name="t_ctx", buffer_size=buffer_size
-        ) as transport:
+        with SharedMemoryTransportPosix.create(name="t_ctx", buffer_size=buffer_size) as transport:
             self._assert_server_ipc_initialized(
                 transport=transport, name="t_ctx", buffer_size=buffer_size
             )
@@ -165,14 +168,10 @@ class TestSharedMemoryTransportPosix:
         # Open the transport (client side) and close it, with no exceptions and no impact on the
         # ability of the next client to do the same
 
-        client_transport = SharedMemoryTransportPosix.open(
-            name="t_open", buffer_size=buffer_size
-        )
+        client_transport = SharedMemoryTransportPosix.open(name="t_open", buffer_size=buffer_size)
         client_transport.close()
 
-        client_transport = SharedMemoryTransportPosix.open(
-            name="t_open", buffer_size=buffer_size
-        )
+        client_transport = SharedMemoryTransportPosix.open(name="t_open", buffer_size=buffer_size)
         client_transport.close()
 
         # Signal server to exit

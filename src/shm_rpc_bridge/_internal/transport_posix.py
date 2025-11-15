@@ -4,7 +4,9 @@ import logging
 import mmap
 import os
 import struct
+import sys
 import threading
+import time
 from typing import Callable, ClassVar
 
 import posix_ipc
@@ -202,6 +204,26 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
             flags=0,
         )
 
+        # Fail if actual size is smaller than requested;
+        # allow larger to account for page-size rounding in macOS
+
+        request_stat = os.fstat(self.request_shm.fd)
+        response_stat = os.fstat(self.response_shm.fd)
+
+        actual_req_size = request_stat.st_size
+        actual_resp_size = response_stat.st_size
+
+        if actual_req_size < self.buffer_size:
+            raise RPCTransportError(
+                f"Request shared memory size mismatch: expected at least {self.buffer_size}, "
+                f"got {actual_req_size}"
+            )
+        if actual_resp_size < self.buffer_size:
+            raise RPCTransportError(
+                f"Response shared memory size mismatch: expected at least {self.buffer_size}, "
+                f"got {actual_resp_size}"
+            )
+
         # Create mmap objects for zero-copy memory access
         self.request_mmap = mmap.mmap(
             self.request_shm.fd,
@@ -235,7 +257,7 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Wait for empty slot
                 assert self.request_empty_sem is not None
                 assert self.request_full_sem is not None
-                self.request_empty_sem.acquire(timeout=self.timeout)
+                self.portable_acquire(self.request_empty_sem, self.timeout)
 
                 # Zero-copy write using mmap
                 assert self.request_mmap is not None
@@ -243,12 +265,12 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Write size header (4 bytes)
                 self.request_mmap.seek(0)
                 self.request_mmap.write(struct.pack("I", size))
-                # BusyError is raised by semaphore.acquire(timeout=X) when timeout expires
                 # Zero-copy write of data
                 self.request_mmap.write(data)
 
                 # Signal full slot
                 self.request_full_sem.release()
+
             except posix_ipc.BusyError as e:
                 raise RPCTimeoutError("Timeout sending request") from e
             except Exception as e:
@@ -260,10 +282,7 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Wait for full slot
                 assert self.request_full_sem is not None
                 assert self.request_empty_sem is not None
-                if self.timeout is not None:
-                    self.request_full_sem.acquire(timeout=self.timeout)
-                else:
-                    self.request_full_sem.acquire()
+                self.portable_acquire(self.request_full_sem, self.timeout)
 
                 # Zero-copy read using mmap
                 assert self.request_mmap is not None
@@ -275,7 +294,6 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 if size < 0 or size > self.buffer_size - self.HEADER_SIZE:
                     raise RPCTransportError(f"Invalid message size: {size}")
                 # Read data
-                # BusyError is raised by semaphore.acquire(timeout=X) when timeout expires
                 data = self.request_mmap.read(size)
 
                 # Signal empty slot
@@ -296,7 +314,7 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Wait for empty slot
                 assert self.response_empty_sem is not None
                 assert self.response_full_sem is not None
-                self.response_empty_sem.acquire(timeout=self.timeout)
+                self.portable_acquire(self.response_empty_sem, self.timeout)
 
                 # Zero-copy write using mmap
                 assert self.response_mmap is not None
@@ -308,7 +326,6 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 self.response_mmap.write(data)
 
                 # Signal full slot
-                # BusyError is raised by semaphore.acquire(timeout=X) when timeout expires
                 self.response_full_sem.release()
             except posix_ipc.BusyError as e:
                 raise RPCTimeoutError("Timeout sending response") from e
@@ -331,7 +348,7 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Wait for full slot
                 assert self.response_full_sem is not None
                 assert self.response_empty_sem is not None
-                self.response_full_sem.acquire(timeout=self.timeout)
+                self.portable_acquire(self.response_full_sem, self.timeout)
 
                 # Zero-copy read using mmap
                 assert self.response_mmap is not None
@@ -400,6 +417,32 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
             self.response_empty_sem = None
             cleanup_sem(self.response_full_sem, self.response_full_sem_name)
             self.response_full_sem = None
+
+    # ------------------------------------------------------------------
+    # Portability Linux / MacOS
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def portable_acquire(sem: posix_ipc.Semaphore, timeout: float) -> None:
+        # Fast path for Linux and other sane platforms
+        if sys.platform != "darwin":
+            # BusyError is raised by when timeout expires
+            sem.acquire(timeout)  # native timed wait, very efficient
+            return
+
+        deadline = time.time() + timeout
+        delay = 0.0001  # small, grows
+
+        while True:
+            try:
+                sem.acquire(timeout=0)
+                return
+            except posix_ipc.BusyError:
+                if time.time() >= deadline:
+                    raise posix_ipc.BusyError("Semaphore acquire timed out")
+                time.sleep(delay)
+                if delay < 0.005:
+                    delay *= 2
 
     # ------------------------------------------------------------------
     # Cleanup and others
