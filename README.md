@@ -295,13 +295,10 @@ pip install -e ".[dev]"
 
 ### Other Dependencies
 
-In addition to Python dependencies, workflow validation requires `act` (a tool to run GitHub Actions locally):
-
-**Installation:**
+In addition to Python dependencies, workflow validation requires `act`, a tool to run GitHub Actions locally. 
+This is is NOT a Python package and cannot be installed via `pip` or listed in `pyproject.toml`. Each developer must install it separately on their system.
 
 See https://nektosact.com/installation/
-
-**Note:** `act` is NOT a Python package and cannot be installed via `pip` or listed in `pyproject.toml`. Each developer must install it separately on their system.
 
 ### Multi-OS Testing and CI
 
