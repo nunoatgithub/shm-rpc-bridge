@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      os_filter:
+        description: 'Run on specific OS (leave empty for all)'
+        type: choice
+        required: false
+        default: 'all'
+        options:
+          - 'all'
+          - 'ubuntu-latest'
+          - 'macos-latest'
+      python_filter:
+        description: 'Run on specific Python version (leave empty for all)'
+        type: choice
+        required: false
+        default: 'all'
+        options:
+          - 'all'
+          - '3.8'
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - '3.12'
+          - '3.13'
+      debug_enabled:
+        type: boolean
+        description: 'Run with tmate debugging session'
+        required: false
+        default: false
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}${{ matrix.variant && format(' ({0})', matrix.variant) || '' }} - Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    if: |
+      (github.event_name != 'workflow_dispatch') ||
+      (inputs.os_filter == 'all' || inputs.os_filter == matrix.os) &&
+      (inputs.python_filter == 'all' || inputs.python_filter == matrix.python-version)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        variant: ['']
+        include:
+          # Add Linux futex variant jobs
+          - os: ubuntu-latest
+            python-version: '3.8'
+            variant: 'futex'
+          - os: ubuntu-latest
+            python-version: '3.9'
+            variant: 'futex'
+          - os: ubuntu-latest
+            python-version: '3.10'
+            variant: 'futex'
+          - os: ubuntu-latest
+            python-version: '3.11'
+            variant: 'futex'
+          - os: ubuntu-latest
+            python-version: '3.12'
+            variant: 'futex'
+          - os: ubuntu-latest
+            python-version: '3.13'
+            variant: 'futex'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Setup tmate session for debugging
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      with:
+        limit-access-to-actor: true
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
+
+    - name: Install project
+      run: |
+        if [ "${{ matrix.variant }}" = "futex" ]; then
+          USE_FUTEX=1 pip install -e .
+        else
+          pip install -e .
+        fi
+      shell: bash
+
+    - name: Run tox (tests only)
+      run: tox -e py$(echo "${{ matrix.python-version }}" | tr -d '.')
+
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.os }}${{ matrix.variant && format('-{0}', matrix.variant) || '' }}-py${{ matrix.python-version }}
+        path: .tox/*/log/
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
+
+    - name: Run lint
+      run: tox -e lint
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
+
+    - name: Run type check
+      run: tox -e type
+

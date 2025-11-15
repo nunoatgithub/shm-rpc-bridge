@@ -225,30 +225,6 @@ Complete working examples are provided in the [`examples/`](examples/) directory
 - **Calculator Service**: A simple calculator with add, subtract, multiply, divide operations
 - **Accumulator Service**: A stateful accumulator that maintains a running total per client
 
-## Development
-
-### Running Tests, Linting and Type Checking
-
-```bash
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Format code
-ruff format src tests
-
-# Lint code
-ruff check src tests
-
-# Type checking
-mypy src
-
-# All of the above in one go, for versions 3.8+ (provided they are installed in the system)
-tox
-```
-
 ## Architecture Details
 
 ### Memory Layout
@@ -309,4 +285,72 @@ Run the cleanup utility:
 ```bash
 python util/cleanup_ipc.py
 ```
+
+## Development
+
+The project supports Python versions 3.8 through 3.13 on Linux and macOS. Due to platform limitations, macOS cannot be containerized in Docker, so multi-OS testing is accomplished through GitHub Actions CI workflows.
+
+#### Automated CI
+
+**Workflow:** `.github/workflows/ci.yml`
+
+The CI runs automatically on every push to `master` and tests all Python versions (3.8-3.13) on both `ubuntu-latest` and `macos-latest`.
+
+**Jobs:**
+- `test`: Runs pytest across all OS/Python combinations (12 jobs total)
+- `lint`: Runs ruff linting once (Python 3.8, Linux only)
+- `type-check`: Runs mypy type checking once (Python 3.8, Linux only)
+
+#### Testing on Branches (Manual Trigger)
+
+For feature branch development, you can manually trigger CI with filters:
+
+1. Push your branch: `git push origin my-feature`
+2. Go to GitHub → Actions → "CI" → "Run workflow"
+3. Select your branch from dropdown
+4. Choose filters:
+   - **OS**: `all`, `ubuntu-latest`, or `macos-latest`
+   - **Python version**: `all` or specific version (3.8-3.13)
+   - **Debug**: Enable SSH access via tmate for interactive debugging
+5. Click "Run workflow"
+
+This allows you to:
+- Test support for a different operating system than yours
+- Test specific OS/Python combinations without running the full matrix
+- Debug issues interactively by SSH-ing into the runner
+
+**Tip:** Use `git commit --amend` + `git push --force` to iterate on your branch without polluting commit history.
+
+#### Why Not Docker for macOS?
+
+macOS cannot legally or technically be containerized on non-Apple hardware due to licensing restrictions. The only way to validate macOS support is:
+
+1. **CI with macOS runners** (GitHub Actions runs on actual Apple hardware)
+2. **Local macOS machine** (your own Mac or cloud macOS VM)
+
+#### Development Workflow for macOS Support
+
+Since you can't run macOS in Docker on Linux:
+
+1. **Develop locally** on Linux, run Linux tests (both POSIX and futex variants if desired)
+2. **Push to a branch** and manually trigger CI with macOS filter
+3. **Check GitHub Actions** for macOS job results
+4. **Iterate** based on macOS logs if issues arise
+
+The CI tests both Linux transport variants (POSIX and futex) as well as the macOS POSIX implementation.
+
+#### Quick Reference
+
+| Task                         | Command                                             |
+|------------------------------|-----------------------------------------------------|
+| Run all tests locally        | `pytest`                                            |
+| Test single Python version   | `tox -e py38` (or py39, py310, etc.)                |
+| Lint code                    | `tox -e lint`                                       |
+| Type check                   | `tox -e type`                                       |
+| Format code                  | `tox -e format`                                     |
+| Run full test matrix locally | `tox`                                               |
+| Test on macOS (from Linux)   | Push branch → manually trigger CI with macOS filter |
+| Test on Linux (from macOS)   | Push branch → manually trigger CI with Linux filter |
+
+**For detailed CI usage, debugging tips, and workflow examples, see** [`.github/workflows/README.md`](.github/workflows/README.md)
 
