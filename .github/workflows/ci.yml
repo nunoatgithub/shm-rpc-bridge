@@ -41,8 +41,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     if: |
       (github.event_name != 'workflow_dispatch') ||
-      (inputs.os_filter == 'all' || inputs.os_filter == matrix.os) &&
-      (inputs.python_filter == 'all' || inputs.python_filter == matrix.python-version)
+      ((inputs.os_filter == 'all' || inputs.os_filter == matrix.os) &&
+       (inputs.python_filter == 'all' || inputs.python_filter == matrix.python-version))
     strategy:
       fail-fast: false
       matrix:
