@@ -158,7 +158,7 @@ class RPCServer:
             self,
             name: str,
             buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
-            timeout: float | None = None
+            timeout: float = SharedMemoryTransport.DEFAULT_TIMEOUT,
     )
 
     def register(self, name: str, func: Callable) -> None:
@@ -185,7 +185,8 @@ class RPCClient:
             self,
             name: str,
             buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
-            timeout: float | None = 5.0
+            timeout: float = SharedMemoryTransport.DEFAULT_TIMEOUT,
+            wait_for_server: float = 0
     )
 
     def call(self, method: str, **params) -> Any:

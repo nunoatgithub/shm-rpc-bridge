@@ -8,8 +8,8 @@ import uuid
 from typing import Any
 
 from shm_rpc_bridge._internal.data import RPCCodec, RPCRequest
-from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.exceptions import RPCError, RPCMethodError
+from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
 
 
 class RPCClient:
@@ -20,6 +20,7 @@ class RPCClient:
         name: str,
         buffer_size: int = SharedMemoryTransport.DEFAULT_BUFFER_SIZE,
         timeout: float = SharedMemoryTransport.DEFAULT_TIMEOUT,
+        wait_for_server: float = 0,
     ):
         """
         Initialize the RPC client.
@@ -29,11 +30,9 @@ class RPCClient:
             buffer_size: Size of shared memory buffers
             timeout: Timeout for RPC calls in seconds
         """
-        self.transport: SharedMemoryTransport = SharedMemoryTransport(
-            name=name,
-            buffer_size=buffer_size,
-            create=False,
-            timeout=timeout,
+
+        self.transport = SharedMemoryTransport.open(
+            name=name, buffer_size=buffer_size, timeout=timeout, wait_for_creation=wait_for_server
         )
         self.codec: RPCCodec = RPCCodec()
 

@@ -27,7 +27,22 @@ class SharedMemoryTransportABC(ABC):
         name: str,
         buffer_size: int | None = None,
         timeout: float | None = None,
-    ) -> SharedMemoryTransportABC: ...
+    ) -> SharedMemoryTransportABC:
+        """
+        Create a new transport instance (server side).
+
+        Args:
+            name: Unique identifier for the transport
+            buffer_size: Size of shared memory buffers
+            timeout: Timeout for operations in seconds
+
+        Returns:
+            New transport instance
+
+        Raises:
+            RPCTransportError: If creation fails
+        """
+        ...
 
     @staticmethod
     @abstractmethod
@@ -35,7 +50,22 @@ class SharedMemoryTransportABC(ABC):
         name: str,
         buffer_size: int | None = None,
         timeout: float | None = None,
-    ) -> SharedMemoryTransportABC: ...
+        wait_for_creation: float = 0,
+    ) -> SharedMemoryTransportABC:
+        """Open an existing transport instance (client side).
+        Args:
+            name: Unique identifier for the transport
+            buffer_size: Size of shared memory buffers
+            timeout: Timeout for operations in seconds
+            wait_for_creation: Time to wait for non-existent transport in seconds. 0 for no wait.
+
+        Returns:
+            Existing transport instance
+
+        Raises:
+            RPCTransportError: If opening fails or transport not found
+        """
+        ...
 
     @abstractmethod
     def close(self) -> None:

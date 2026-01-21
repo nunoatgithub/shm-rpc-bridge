@@ -24,7 +24,7 @@ from concurrent import futures
 
 import grpc
 
-from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
+from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

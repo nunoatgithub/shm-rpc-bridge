@@ -10,8 +10,8 @@ import pytest
 # -------------------------------------------------------------------------------------
 from conftest import _TEST_CHANNEL
 
-from shm_rpc_bridge._internal.transport_posix import SharedMemoryTransportPosix
 from shm_rpc_bridge.exceptions import RPCTimeoutError, RPCTransportError
+from shm_rpc_bridge.transport.transport_posix import SharedMemoryTransportPosix
 
 
 @pytest.fixture

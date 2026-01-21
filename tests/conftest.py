@@ -1,14 +1,23 @@
+import multiprocessing
 import sys
 
 import pytest
 
 from shm_rpc_bridge import RPCServer
-from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
+from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
+from shm_rpc_bridge.transport.transport_posix import SharedMemoryTransportPosix
 
 _TEST_CHANNEL = "t"
 
 linux = pytest.mark.skipif(not sys.platform.startswith("linux"), reason="Linux-only test")
 macos = pytest.mark.skipif(sys.platform != "darwin", reason="macOS-only test")
+posix_only = pytest.mark.skipif(
+    SharedMemoryTransport != SharedMemoryTransportPosix, reason="posix-only test"
+)
+
+
+def pytest_configure(config):
+    multiprocessing.set_start_method("spawn", force=True)
 
 
 @pytest.fixture
@@ -42,9 +51,9 @@ def client_transport(buffer_size, timeout):
 
 @pytest.fixture
 def server(buffer_size, timeout):
-    server = RPCServer(name=_TEST_CHANNEL, buffer_size=buffer_size, timeout=timeout)
-    yield server
-    server.close()
+    _server = RPCServer(name=_TEST_CHANNEL, buffer_size=buffer_size, timeout=timeout)
+    yield _server
+    _server.close()
 
 
 @pytest.fixture(autouse=True)

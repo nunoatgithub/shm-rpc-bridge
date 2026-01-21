@@ -54,12 +54,28 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
         name: str,
         buffer_size: int | None = DEFAULT_BUFFER_SIZE,
         timeout: float | None = DEFAULT_TIMEOUT,
+        wait_for_creation: float = 0,
     ) -> SharedMemoryTransportPosix:
         assert buffer_size is not None
         assert timeout is not None
-        return SharedMemoryTransportPosix(
-            name=name, buffer_size=buffer_size, create=False, timeout=timeout
-        )
+
+        start = time.monotonic()
+        while True:
+            try:
+                return SharedMemoryTransportPosix(
+                    name=name,
+                    buffer_size=buffer_size,
+                    create=False,
+                    timeout=timeout,
+                )
+            except RPCTransportError as e:
+                if wait_for_creation <= 0.0:
+                    raise
+                if time.monotonic() - start > wait_for_creation:
+                    raise RPCTransportError(
+                        f"Timed out waiting for shared memory transport {name}.{e}"
+                    )
+            time.sleep(0.01)
 
     @staticmethod
     def _get_request_semaphore_names(name: str) -> tuple[str, str]:

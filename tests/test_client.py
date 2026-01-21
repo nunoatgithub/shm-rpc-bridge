@@ -3,8 +3,9 @@ import sys
 import pytest
 
 from shm_rpc_bridge import RPCServer, RPCTimeoutError, RPCTransportError
-from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.client import RPCClient
+from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
+from shm_rpc_bridge.transport.transport_posix import SharedMemoryTransportPosix
 
 
 class TestRPCClient:
@@ -35,14 +36,26 @@ class TestRPCClient:
         ):
             RPCClient("t_na")
 
+    def test_create_with_wait_without_server_fails(self) -> None:
+        with pytest.raises(
+            RPCTransportError, match=r"Timed out waiting for shared memory transport."
+        ):
+            RPCClient("t_na", timeout=1.0, wait_for_server=1.0)
+
     def test_create_with_capacity_diff_than_server_fails(self, server) -> None:
         # macOS is only sensitive to page differences (16KB pages in Apple silicon)
         difference = 16384 if sys.platform == "darwin" else 1
+        if SharedMemoryTransport == SharedMemoryTransportPosix:
+            expected_exception_msg_pattern = r".*shared memory size mismatch.*"
+        else:
+            expected_exception_msg_pattern = r".*mmap length is greater than file size.*"
         with pytest.raises(
             RPCTransportError,
-            match=r".*shared memory size mismatch.*",
+            match=expected_exception_msg_pattern,
         ):
-            RPCClient(server.transport.name, server.transport.buffer_size + difference)
+            RPCClient(
+                name=server.transport.name, buffer_size=server.transport.buffer_size + difference
+            )
 
     def test_timeout_when_server_not_running(self) -> None:
         channel = "t_cto"

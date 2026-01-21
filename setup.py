@@ -10,8 +10,8 @@ extensions = []
 if sys.platform.startswith("linux") and os.environ.get("USE_FUTEX"):
     extensions.append(
         Extension(
-            name="shm_rpc_bridge._internal.linux_futex",
-            sources=["src/shm_rpc_bridge/_internal/linux_futex.c"],
+            name="shm_rpc_bridge.transport.linux_futex",
+            sources=["src/shm_rpc_bridge/transport/linux_futex.c"],
             define_macros=[("_GNU_SOURCE", "1")],
             extra_compile_args=["-O3", "-std=c11", "-Wall", "-Wextra"],
         )

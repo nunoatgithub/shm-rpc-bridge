@@ -10,8 +10,8 @@ from enum import Enum
 from typing import Any, Callable
 
 from shm_rpc_bridge._internal.data import RPCCodec, RPCRequest, RPCResponse
-from shm_rpc_bridge._internal.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.exceptions import RPCError, RPCTimeoutError, RPCTransportError
+from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
 
 logger = logging.getLogger(__name__)
 
