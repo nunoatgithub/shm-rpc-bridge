@@ -123,6 +123,9 @@ with RPCClient("my_service") as client:
    object, so unless you use json for the entire structure, it's always json + other proto on top => slower. 
    If you consider other more specialized RPC contracts, a fork from this repo with a quicker data layer would 
    certainly make sense. 
+4. **Using only the transport layer**: Given the limitations of json as a serialization mechanism in python, it is
+   possible to bypass the RPC layer and directly use the byte-based transport layer underneath it !
+   This gives you a safe byte-based shared memory pipe API between two processes !
 
 ## Benchmarks
 
@@ -219,6 +222,11 @@ class RPCSerializationError(RPCError):
     """Raised when serialization/deserialization fails."""
 ```
 
+### Direct usage of the Transport API
+See the definition in *shm_rpc_bridge.transport.transport.py*.
+
+Use the *client.py* and *server.py* as inspiration for how to use it. The tests can help too.
+
 ## Examples
 
 Complete working examples are provided in the [`examples/`](examples/) directory:
@@ -285,6 +293,32 @@ Run the cleanup utility:
 
 ```bash
 python util/cleanup_ipc.py
+```
+
+## Logging
+
+The library uses Python's standard `logging` module. Logs by default at WARNING level.
+
+To change logging level :
+```bash
+export SHM_RPC_BRIDGE_LOG_LEVEL=DEBUG
+```
+To change more things than just the level :
+```python
+import logging
+
+import shm_rpc_bridge
+# now override, AFTER import
+
+# Enable debug logging
+logging.getLogger("shm_rpc_bridge").setLevel(logging.DEBUG)
+
+# Or configure with a handler for file output
+handler = logging.FileHandler("shm_rpc_bridge.log")
+handler.setFormatter(logging.Formatter(
+    "%(asctime)s - %(process)d - %(name)s - %(levelname)s : %(message)s"
+))
+logging.getLogger("shm_rpc_bridge").addHandler(handler)
 ```
 
 ## Development

@@ -1,7 +1,14 @@
 import multiprocessing
+import os
 import sys
 
 import pytest
+
+# Set log level BEFORE importing shm_rpc_bridge.
+# This ensures spawned processes will also use this level
+# It's a good idea to leave a production level as default and change it only when developing.
+# Otherwise, too much logging may force over-determinism, reducing the actual test coverage.
+os.environ["SHM_RPC_BRIDGE_LOG_LEVEL"] = "ERROR"
 
 from shm_rpc_bridge import RPCServer
 from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport

@@ -6,6 +6,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+# disable all bridge logging, keep only errors.
+os.environ["SHM_RPC_BRIDGE_LOG_LEVEL"] = "ERROR"
+
 from shm_rpc_bridge import RPCClient
 
 

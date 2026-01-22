@@ -15,6 +15,8 @@ from shm_rpc_bridge.exceptions import RPCTimeoutError, RPCTransportError
 
 from .transport import SharedMemoryTransportABC
 
+logger = logging.getLogger(__name__)
+
 
 class SharedMemoryTransportPosix(SharedMemoryTransportABC):
     """
@@ -107,6 +109,7 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
             create: Whether to create new shared memory (server) or open existing (client)
             timeout: Default timeout for operations in seconds
         """
+
         self.name = name
         self.buffer_size = buffer_size
         self.timeout = timeout
@@ -140,8 +143,6 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
         self._initialize()
 
     def _initialize(self) -> None:
-        logging.info("Starting {}", self.__class__.__name__)
-
         try:
             if self.owner:
                 # Server creates resources
@@ -154,6 +155,8 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
             raise RPCTransportError(f"Failed to initialize transport: {e}") from e
 
     def _create_resources(self) -> None:
+        logger.info("Creating POSIX resources for channel %s", self.name)
+
         # Create POSIX shared memory segments
         self.request_shm = posix_ipc.SharedMemory(
             self.request_shm_name,
@@ -208,8 +211,11 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
             flags=posix_ipc.O_CREX,
             initial_value=0,
         )
+        logger.info("All POSIX resources for channel %s successfully created.", self.name)
 
     def _open_resources(self) -> None:
+        logger.info("Opening POSIX resources for channel %s", self.name)
+
         # Open existing POSIX shared memory segments
         self.request_shm = posix_ipc.SharedMemory(
             self.request_shm_name,
@@ -264,16 +270,35 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
         self.response_empty_sem = posix_ipc.Semaphore(self.response_empty_sem_name)
         self.response_full_sem = posix_ipc.Semaphore(self.response_full_sem_name)
 
+        logger.info("All POSIX resources for channel %s successfully opened.", self.name)
+
     def send_request(self, data: bytes) -> None:
+        logger.debug("Sending request on channel %s.", self.name)
+
         if len(data) > self.buffer_size - self.HEADER_SIZE:
             raise RPCTransportError(f"Message too large: {len(data)} bytes exceeds buffer size")
 
+        logger.debug("send_request -> waiting for lock in channel %s...", self.name)
+
         with self._lock:
+            logger.debug("send_request -> acquired lock in channel %s...", self.name)
+
             try:
                 # Wait for empty slot
                 assert self.request_empty_sem is not None
                 assert self.request_full_sem is not None
+
+                logger.debug(
+                    "send_request -> acquiring semaphore %s...",
+                    self.request_empty_sem_name,
+                )
+
                 self.portable_acquire(self.request_empty_sem, self.timeout)
+
+                logger.debug(
+                    "send_request -> semaphore %s acquired. ready to send request!",
+                    self.request_empty_sem_name,
+                )
 
                 # Zero-copy write using mmap
                 assert self.request_mmap is not None
@@ -284,21 +309,50 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Zero-copy write of data
                 self.request_mmap.write(data)
 
+                logger.debug(
+                    "send_request -> request written (%d bytes). releasing semaphore %s...",
+                    len(data),
+                    self.request_full_sem_name,
+                )
+
                 # Signal full slot
                 self.request_full_sem.release()
+
+                logger.debug(
+                    "send_request -> released semaphore %s.",
+                    self.request_full_sem_name,
+                )
 
             except posix_ipc.BusyError as e:
                 raise RPCTimeoutError("Timeout sending request") from e
             except Exception as e:
                 raise RPCTransportError(f"Failed to send request: {e}") from e
 
+            finally:
+                logger.debug("send_request -> releasing lock in channel %s...", self.name)
+
     def receive_request(self) -> bytes:
+        logger.debug("receive_request -> waiting for lock in channel %s...", self.name)
+
         with self._lock:
+            logger.debug("receive_request -> acquired lock in channel %s...", self.name)
+
             try:
                 # Wait for full slot
                 assert self.request_full_sem is not None
                 assert self.request_empty_sem is not None
+
+                logger.debug(
+                    "receive_request -> acquiring semaphore %s...",
+                    self.request_full_sem_name,
+                )
+
                 self.portable_acquire(self.request_full_sem, self.timeout)
+
+                logger.debug(
+                    "receive_request -> semaphore %s acquired. ready to read request!",
+                    self.request_full_sem_name,
+                )
 
                 # Zero-copy read using mmap
                 assert self.request_mmap is not None
@@ -315,22 +369,48 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Signal empty slot
                 self.request_empty_sem.release()
 
+                logger.debug(
+                    "receive_request -> semaphore %s released. "
+                    "returning received request (%d bytes)!",
+                    self.request_empty_sem_name,
+                    len(data),
+                )
+
                 return data
+
             except posix_ipc.BusyError as e:
                 raise RPCTimeoutError("Timeout receiving request") from e
             except Exception as e:
                 raise RPCTransportError(f"Failed to receive request: {e}") from e
 
+            finally:
+                logger.debug("receive_request -> releasing lock in channel %s...", self.name)
+
     def send_response(self, data: bytes) -> None:
         if len(data) > self.buffer_size - self.HEADER_SIZE:
             raise RPCTransportError(f"Message too large: {len(data)} bytes exceeds buffer size")
 
+        logger.debug("send_response -> waiting for lock in channel %s...", self.name)
+
         with self._lock:
+            logger.debug("send_response -> acquired lock in channel %s...", self.name)
+
             try:
                 # Wait for empty slot
                 assert self.response_empty_sem is not None
                 assert self.response_full_sem is not None
+
+                logger.debug(
+                    "send_response -> acquiring semaphore %s...",
+                    self.response_empty_sem_name,
+                )
+
                 self.portable_acquire(self.response_empty_sem, self.timeout)
+
+                logger.debug(
+                    "send_response -> semaphore %s acquired. ready to send response!",
+                    self.response_empty_sem_name,
+                )
 
                 # Zero-copy write using mmap
                 assert self.response_mmap is not None
@@ -341,30 +421,50 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Zero-copy write of data
                 self.response_mmap.write(data)
 
+                logger.debug(
+                    "send_response -> response written (%d bytes). releasing semaphore %s...",
+                    len(data),
+                    self.response_full_sem_name,
+                )
+
                 # Signal full slot
                 self.response_full_sem.release()
+
+                logger.debug(
+                    "send_response -> released semaphore %s.",
+                    self.response_full_sem_name,
+                )
+
             except posix_ipc.BusyError as e:
                 raise RPCTimeoutError("Timeout sending response") from e
             except Exception as e:
                 raise RPCTransportError(f"Failed to send response: {e}") from e
 
+            finally:
+                logger.debug("send_response -> releasing lock in channel %s...", self.name)
+
     def receive_response(self) -> bytes:
-        """
-        Receive response data (client side).
+        logger.debug("receive_response -> waiting for lock in channel %s...", self.name)
 
-        Returns:
-            Received data
-
-        Raises:
-            RPCTransportError: If receive fails
-            RPCTimeoutError: If operation times out
-        """
         with self._lock:
+            logger.debug("receive_response -> acquired lock in channel %s...", self.name)
+
             try:
                 # Wait for full slot
                 assert self.response_full_sem is not None
                 assert self.response_empty_sem is not None
+
+                logger.debug(
+                    "receive_response -> acquiring semaphore %s...",
+                    self.response_full_sem_name,
+                )
+
                 self.portable_acquire(self.response_full_sem, self.timeout)
+
+                logger.debug(
+                    "receive_response -> semaphore %s acquired. ready to read response!",
+                    self.response_full_sem_name,
+                )
 
                 # Zero-copy read using mmap
                 assert self.response_mmap is not None
@@ -381,14 +481,28 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                 # Signal empty slot
                 self.response_empty_sem.release()
 
+                logger.debug(
+                    "receive_response -> semaphore %s released. "
+                    "returning received response (%d bytes)!",
+                    self.response_empty_sem_name,
+                    len(data),
+                )
+
                 return data
+
             except posix_ipc.BusyError as e:
                 raise RPCTimeoutError("Timeout receiving response") from e
             except Exception as e:
                 raise RPCTransportError(f"Failed to receive response: {e}") from e
 
+            finally:
+                logger.debug("receive_response -> releasing lock in channel %s...", self.name)
+
     def close(self) -> None:
+        logger.debug("close -> waiting for lock in channel %s...", self.name)
+
         with self._lock:
+            logger.debug("close -> acquired lock in channel %s...", self.name)
 
             def safe_call(func: Callable[[], None]) -> None:
                 """Execute a callable safely, ignoring all exceptions."""
@@ -412,27 +526,35 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
                     if self.owner:
                         safe_call(lambda: posix_ipc.unlink_semaphore(sem_name))
 
-            # Close mmap objects
-            cleanup_mmap(self.request_mmap)
-            self.request_mmap = None
-            cleanup_mmap(self.response_mmap)
-            self.response_mmap = None
+            try:
+                logger.info("close -> unlinking resources in channel %s...", self.name)
 
-            # Close and unlink shared memory (only if created by this instance)
-            cleanup_shm(self.request_shm, self.request_shm_name)
-            self.request_shm = None
-            cleanup_shm(self.response_shm, self.response_shm_name)
-            self.response_shm = None
+                # Close mmap objects
+                cleanup_mmap(self.request_mmap)
+                self.request_mmap = None
+                cleanup_mmap(self.response_mmap)
+                self.response_mmap = None
 
-            # Close and unlink semaphores (only if created by this instance)
-            cleanup_sem(self.request_empty_sem, self.request_empty_sem_name)
-            self.request_empty_sem = None
-            cleanup_sem(self.request_full_sem, self.request_full_sem_name)
-            self.request_full_sem = None
-            cleanup_sem(self.response_empty_sem, self.response_empty_sem_name)
-            self.response_empty_sem = None
-            cleanup_sem(self.response_full_sem, self.response_full_sem_name)
-            self.response_full_sem = None
+                # Close and unlink shared memory (only if created by this instance)
+                cleanup_shm(self.request_shm, self.request_shm_name)
+                self.request_shm = None
+                cleanup_shm(self.response_shm, self.response_shm_name)
+                self.response_shm = None
+
+                # Close and unlink semaphores (only if created by this instance)
+                cleanup_sem(self.request_empty_sem, self.request_empty_sem_name)
+                self.request_empty_sem = None
+                cleanup_sem(self.request_full_sem, self.request_full_sem_name)
+                self.request_full_sem = None
+                cleanup_sem(self.response_empty_sem, self.response_empty_sem_name)
+                self.response_empty_sem = None
+                cleanup_sem(self.response_full_sem, self.response_full_sem_name)
+                self.response_full_sem = None
+
+                logger.info("close -> unlinked all resources in channel %s.", self.name)
+
+            finally:
+                logger.debug("close -> releasing lock in channel %s...", self.name)
 
     # ------------------------------------------------------------------
     # Portability Linux / MacOS

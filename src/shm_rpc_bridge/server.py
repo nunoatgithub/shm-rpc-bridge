@@ -53,9 +53,10 @@ class RPCServer:
             buffer_size: Size of shared memory buffers
             timeout: Timeout for operations in seconds (None for blocking)
         """
-        self.transport: SharedMemoryTransport | None = None
-        self.codec: RPCCodec | None = None
-        self.methods: dict[str, Callable[..., Any]] = {}
+        self.name: str = name
+        self._transport: SharedMemoryTransport | None = None
+        self._codec: RPCCodec | None = None
+        self._methods: dict[str, Callable[..., Any]] = {}
         self._running: bool = False
         self._signal_handler: _SignalHandler | None = None
 
@@ -63,17 +64,17 @@ class RPCServer:
         self._signal_handler.start()
 
         try:
-            self.transport = SharedMemoryTransport.create(name, buffer_size, timeout)
-            self.codec = RPCCodec()
+            self._transport = SharedMemoryTransport.create(name, buffer_size, timeout)
+            self._codec = RPCCodec()
             self.register("__running__", self.__running__)
         except Exception:
-            if self.transport is not None:
-                self.transport.close()
+            if self._transport is not None:
+                self._transport.close()
             raise
 
     def register(self, name: str, func: Callable[..., Any]) -> None:
-        self.methods[name] = func
-        logger.info(f"Registered method: {name}")
+        self._methods[name] = func
+        logger.info("[Server %s]: registered method %s", self.name, name)
 
     def register_function(self, func: Callable[..., Any]) -> Callable[..., Any]:
         """Decorator to register a function."""
@@ -86,35 +87,35 @@ class RPCServer:
 
         This will block until close() is called (in another thread) or an error occurs.
         """
-        assert self.transport is not None
-        logger.info(f"Server started on channel: {self.transport.name}")
+        assert self._transport is not None
+        logger.info("[Server %s]: started", self.name)
         self._running = True
 
         try:
             while self._running:
                 self._handle_request()
         except self._ServerInterruptionError:
-            logger.debug("Server interrupted", exc_info=True)
+            logger.debug("[Server %s]: interrupted", self.name, exc_info=True)
         except Exception:
-            logger.error("Server error", exc_info=True)
+            logger.error("[Server %s]: error", self.name, exc_info=True)
             raise
         finally:
             self.close()
-            logger.warning("Server successfully decommissioned.")
+            logger.warning("[Server %s]: successfully decommissioned.", self.name)
 
     def close(self) -> None:
         self._running = False
-        if self.transport is not None:
+        if self._transport is not None:
             try:
-                self.transport.close()
+                self._transport.close()
             finally:
-                self.transport = None
+                self._transport = None
 
         if self._signal_handler is not None:
             self._signal_handler.stop()
 
     def _status(self) -> Status:
-        if self.transport is None:
+        if self._transport is None:
             return self.Status.ERROR if self._running else self.Status.CLOSED
 
         if not self._running:
@@ -124,13 +125,13 @@ class RPCServer:
         probe_transport: SharedMemoryTransport | None = None
         try:
             probe_transport = SharedMemoryTransport.open(
-                self.transport.name, self.transport.buffer_size
+                self._transport.name, self._transport.buffer_size
             )
-            assert self.codec is not None
-            encoded_request = self.codec.encode_request(RPCRequest("0", "__running__", {}))
+            assert self._codec is not None
+            encoded_request = self._codec.encode_request(RPCRequest("0", "__running__", {}))
             probe_transport.send_request(encoded_request)
             encoded_response = probe_transport.receive_response()
-            response = self.codec.decode_response(encoded_response)
+            response = self._codec.decode_response(encoded_response)
             return self.Status.RUNNING if response.error is None else self.Status.ERROR
         except RPCError:
             return self.Status.ERROR
@@ -139,9 +140,9 @@ class RPCServer:
                 probe_transport.close()
 
     def _receive_request(self) -> bytes | None:
-        assert self.transport is not None
+        assert self._transport is not None
         try:
-            return self.transport.receive_request()
+            return self._transport.receive_request()
         # ignore as the normal consequence of waiting for a request that hasn't arrived yet
         except RPCTimeoutError:
             return None
@@ -156,16 +157,20 @@ class RPCServer:
         if data is None:
             return None
 
-        assert self.codec is not None
-        request = self.codec.decode_request(data)
-        logger.debug(f"Received request: {request.method} ({request.request_id})")
+        assert self._codec is not None
+        request = self._codec.decode_request(data)
+        logger.debug(
+            "[Server %s]: received request : %s",
+            self.name,
+            f"{request.method} ({request.request_id})",
+        )
 
         # Execute method and create response
         try:
-            if request.method not in self.methods:
+            if request.method not in self._methods:
                 raise RPCError(f"Unknown method: {request.method}")
 
-            method = self.methods[request.method]
+            method = self._methods[request.method]
             result = method(**request.params)
 
             response = RPCResponse(
@@ -173,10 +178,12 @@ class RPCServer:
                 result=result,
                 error=None,
             )
-            logger.debug(f"Request {request.request_id} succeeded")
+            logger.debug("[Server %s]: Request %s succeeded", self.name, request.request_id)
 
         except Exception as e:
-            logger.error(f"Request {request.request_id} failed", exc_info=True)
+            logger.error(
+                "[Server %s]: Request %s failed", self.name, request.request_id, exc_info=True
+            )
             error_msg = f"{type(e).__name__}: {str(e)}"
             response = RPCResponse(
                 request_id=request.request_id,
@@ -185,15 +192,26 @@ class RPCServer:
             )
 
         # Send response
-        assert self.codec is not None
-        response_data = self.codec.encode_response(response)
-        assert self.transport is not None
+        assert self._codec is not None
+        response_data = self._codec.encode_response(response)
+        assert self._transport is not None
         try:
-            self.transport.send_response(response_data)
+            logger.debug(
+                "[Server %s]: Sending response %s to client", self.name, request.request_id
+            )
+            self._transport.send_response(response_data)
         except RPCTimeoutError as e:
             # Timeout sending response is a REAL error - client not reading
-            logger.error(f"Timeout sending response: {e}")
+            logger.error(
+                "[Server %s]: Timeout sending response % : %s",
+                self.name,
+                request.request_id,
+                str(e),
+            )
             raise
+
+        logger.debug("[Server %s]: Response %s sent", self.name, request.request_id)
+
         return response
 
     def __enter__(self) -> RPCServer:
@@ -206,7 +224,9 @@ class RPCServer:
         try:
             self.close()
         except Exception:
-            logger.warning("Exception during RPCServer.__del__", exc_info=True)
+            logger.warning(
+                "[Server %s]: Exception during RPCServer.__del__", self.name, exc_info=True
+            )
 
 
 class _SignalHandler:
@@ -265,7 +285,7 @@ class _SignalHandler:
 
     def _handler(self, signum: int, frame: Any) -> None:
         """Signal handler that attempts a clean shutdown by calling the provided callback."""
-        logger.info(f"Received signal {signum}; shutting down RPCServer")
+        logger.info("Received signal %d; shutting down RPCServer", signum)
         try:
             self._close_callback()
         except Exception:

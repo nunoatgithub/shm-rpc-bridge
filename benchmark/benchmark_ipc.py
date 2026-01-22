@@ -12,6 +12,8 @@ import orjson
 
 # Allow access to internal APIs for benchmarking
 os.environ["SHM_RPC_BRIDGE_ALLOW_INTERNALS"] = "true"
+# disable all bridge logging, keep only errors.
+os.environ["SHM_RPC_BRIDGE_LOG_LEVEL"] = "ERROR"
 
 import multiprocessing
 import time

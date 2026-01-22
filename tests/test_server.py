@@ -14,25 +14,25 @@ from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
 class TestRPCServer:
     def test_create_and_close(self):
         server = RPCServer("t_init", 100, 1.0)
-        assert server.transport.name == "t_init"
-        assert server.transport.buffer_size == 100
-        assert server.transport.timeout == 1.0
+        assert server._transport.name == "t_init"
+        assert server._transport.buffer_size == 100
+        assert server._transport.timeout == 1.0
         assert server._status() == RPCServer.Status.INITIALIZED
         server.close()
-        assert server.transport is None
+        assert server._transport is None
         assert server._status() == RPCServer.Status.CLOSED
         # make sure close is idempotent
         server.close()
 
         # default constructor, using context manager protocol
         with RPCServer("t_init_d") as server:
-            assert server.transport.name == "t_init_d"
-            assert server.transport.buffer_size == SharedMemoryTransport.DEFAULT_BUFFER_SIZE
-            assert server.transport.timeout == SharedMemoryTransport.DEFAULT_TIMEOUT
+            assert server._transport.name == "t_init_d"
+            assert server._transport.buffer_size == SharedMemoryTransport.DEFAULT_BUFFER_SIZE
+            assert server._transport.timeout == SharedMemoryTransport.DEFAULT_TIMEOUT
 
     def test_create_twice_fails(self, server):
         with pytest.raises(RPCTransportError):
-            RPCServer(server.transport.name)
+            RPCServer(server._transport.name)
         # but leaves the original untouched
         assert server._status() == RPCServer.Status.INITIALIZED
 
@@ -40,18 +40,18 @@ class TestRPCServer:
         def test_func(x: int) -> int:
             return x * 2
 
-        assert len(server.methods) == 1
+        assert len(server._methods) == 1
         server.register("test", test_func)
-        assert len(server.methods) == 2
-        assert "test" in server.methods
-        assert server.methods["test"] == test_func
+        assert len(server._methods) == 2
+        assert "test" in server._methods
+        assert server._methods["test"] == test_func
 
     def test_register_decorator(self, server) -> None:
         @server.register_function
         def multiply(x: int, y: int) -> int:
             return x * y
 
-        assert "multiply" in server.methods
+        assert "multiply" in server._methods
 
 
 class TestAutoCleanupBeforeStart:

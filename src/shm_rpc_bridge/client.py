@@ -31,10 +31,11 @@ class RPCClient:
             timeout: Timeout for RPC calls in seconds
         """
 
-        self.transport = SharedMemoryTransport.open(
+        self.name = name
+        self._transport = SharedMemoryTransport.open(
             name=name, buffer_size=buffer_size, timeout=timeout, wait_for_creation=wait_for_server
         )
-        self.codec: RPCCodec = RPCCodec()
+        self._codec: RPCCodec = RPCCodec()
 
     def call(self, method: str, **params: Any) -> Any:
         """
@@ -62,12 +63,12 @@ class RPCClient:
         )
 
         # Encode and send request
-        request_data = self.codec.encode_request(request)
-        self.transport.send_request(request_data)
+        request_data = self._codec.encode_request(request)
+        self._transport.send_request(request_data)
 
         # Receive and decode response
-        response_data = self.transport.receive_response()
-        response = self.codec.decode_response(response_data)
+        response_data = self._transport.receive_response()
+        response = self._codec.decode_response(response_data)
 
         # Verify request ID matches
         if response.request_id != request_id:
@@ -83,11 +84,11 @@ class RPCClient:
 
     def close(self) -> None:
         try:
-            self.transport.close()
+            self._transport.close()
         finally:
             # Inform the type checker these are intentionally cleared
-            self.transport = None  # type: ignore[assignment]
-            self.codec = None  # type: ignore[assignment]
+            self._transport = None  # type: ignore[assignment]
+            self._codec = None  # type: ignore[assignment]
 
     def __enter__(self) -> RPCClient:
         return self

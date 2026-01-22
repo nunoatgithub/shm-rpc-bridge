@@ -7,17 +7,13 @@ that can be called remotely via RPC over shared memory.
 """
 
 from __future__ import annotations
-import logging
+
+import os
+
+# disable all bridge logging, keep only errors.
+os.environ["SHM_RPC_BRIDGE_LOG_LEVEL"] = "ERROR"
 
 from shm_rpc_bridge import RPCServer
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
-
 
 class Accumulator:
     """A simple accumulator service with a table of accumulated values per client."""
@@ -35,8 +31,8 @@ def main() -> None:
     """Run the accumulator RPC server."""
     channel_name = "acc_rpc"
 
-    logger.info("Starting Accumulator RPC Server...")
-    logger.info(f"Channel: {channel_name}")
+    print("Starting Accumulator RPC Server...")
+    print(f"Channel: {channel_name}")
 
     # Create accumulator instance
     acc = Accumulator()
@@ -49,8 +45,8 @@ def main() -> None:
     server.register("clear", acc.clear)
 
     # Start serving requests
-    logger.info("Server ready! Waiting for requests...")
-    logger.info("Press Ctrl+C to stop.")
+    print("Server ready! Waiting for requests...")
+    print("Press Ctrl+C to stop.")
     server.start()
 
 if __name__ == "__main__":
