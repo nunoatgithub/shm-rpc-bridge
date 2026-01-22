@@ -272,6 +272,9 @@ class SharedMemoryTransportPosix(SharedMemoryTransportABC):
 
         logger.info("All POSIX resources for channel %s successfully opened.", self.name)
 
+    def __del__(self):
+        self.close()
+
     def send_request(self, data: bytes) -> None:
         logger.debug("Sending request on channel %s.", self.name)
 
