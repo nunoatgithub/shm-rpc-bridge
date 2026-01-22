@@ -7,6 +7,10 @@ A simple Python library for RPC inter-process communication using shared memory 
 
 ## Installation
 
+```bash
+pip install shm-rpc-bridge
+```
+
 ### From Source
 
 ```bash
