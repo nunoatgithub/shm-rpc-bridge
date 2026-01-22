@@ -279,21 +279,13 @@ Four POSIX semaphores per channel:
 
 Server must be started before clients connect. Ensure server is running:
 
-```bash
-ps aux | grep your_server_script
-```
-
 ### "Message too large"
 
 Increase buffer size when creating client/server:
 
 ### Resource leaks
 
-Run the cleanup utility:
-
-```bash
-python util/cleanup_ipc.py
-```
+Run the [cleanup](util/README.md) utility.
 
 ## Logging
 
