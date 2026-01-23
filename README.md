@@ -268,6 +268,8 @@ Four POSIX semaphores per channel:
 ## Limitations
 
 - **Same-host only**: Shared memory requires processes on the same machine
+- **JSON-serializable types only**: A future version will likely rely instead on pickle 
+  (with the downside of forcing processes to align on python version...)
 - **POSIX systems**: Requires POSIX semaphore support (Linux, macOS, BSD)
 - **Buffer size**: Messages must fit in configured buffer
 - **No encryption**: Data in shared memory is not encrypted (same-host trust model)
