@@ -5,14 +5,11 @@ Calculator RPC Client Example
 This client demonstrates making RPC calls to the calculator server
 over shared memory.
 """
-import os
 import sys
-
-# disable all bridge logging, keep only errors.
-os.environ["SHM_RPC_BRIDGE_LOG_LEVEL"] = "ERROR"
 
 from shm_rpc_bridge import RPCClient
 from shm_rpc_bridge.exceptions import RPCError, RPCMethodError, RPCTimeoutError
+
 
 
 def print_separator() -> None:

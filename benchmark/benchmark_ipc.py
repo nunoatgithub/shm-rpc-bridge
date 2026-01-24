@@ -12,15 +12,13 @@ import orjson
 
 # Allow access to internal APIs for benchmarking
 os.environ["SHM_RPC_BRIDGE_ALLOW_INTERNALS"] = "true"
-# disable all bridge logging, keep only errors.
-os.environ["SHM_RPC_BRIDGE_LOG_LEVEL"] = "ERROR"
 
 import multiprocessing
 import time
-import logging
 
 from shm_rpc_bridge import RPCClient, RPCServer
 from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
+
 
 
 # Cleanup helper
@@ -120,7 +118,6 @@ def benchmark_direct_calls() -> float:
 
 def run_server_process(channel: str, server_ready: multiprocessing.Event) -> None:  # type: ignore
     """Run RPC server in a separate process."""
-    logging.getLogger("shm_rpc_bridge").setLevel(logging.ERROR)
 
     server = RPCServer(channel, timeout=10.0)
     service = CalculatorService()
@@ -204,7 +201,6 @@ def benchmark_large_direct(message_size: str = "large") -> float:
 def run_data_server_process(channel: str,
                             server_ready: multiprocessing.Event) -> None:  # type: ignore
     """Run data processing server in a separate process."""
-    logging.getLogger("shm_rpc_bridge").setLevel(logging.ERROR)
 
     server = RPCServer(channel, buffer_size=LARGE_MESSAGE_SERIALIZED_SIZE, timeout=10.0)
     service = DataService()
@@ -306,7 +302,6 @@ def print_results(name: str, duration: float, baseline: float = None,
 def main() -> None:
     """Run all benchmarks."""
 
-    logging.getLogger("shm_rpc_bridge").setLevel(logging.ERROR)
 
     print("Cleaning up any leftover resources...")
     ensure_clean_slate("bench_small")

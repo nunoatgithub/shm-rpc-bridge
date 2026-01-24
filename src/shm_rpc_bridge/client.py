@@ -4,12 +4,15 @@ RPC client implementation.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
 from shm_rpc_bridge._internal.data import RPCCodec, RPCRequest
 from shm_rpc_bridge.exceptions import RPCError, RPCMethodError
 from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
+
+logger = logging.getLogger(__name__)
 
 
 class RPCClient:
@@ -96,5 +99,10 @@ class RPCClient:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore
         self.close()
 
-    def __delete__(self, instance: Any) -> None:
-        self.close()
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            logger.warning(
+                "[Client %s]: Exception during RPCClient.__del__", self.name, exc_info=True
+            )

@@ -231,6 +231,22 @@ See the definition in *shm_rpc_bridge.transport.transport.py*.
 
 Use the *client.py* and *server.py* as inspiration for how to use it. The tests can help too.
 
+Make sure you read the Resource Leakage chapter, next.
+
+### Resource Leakage
+
+This library allocates shared resources that are limited in number. 
+One cannot rely on reference counting garbage collection to manage these kernel level objects.
+When your process exits, they will remain behind, unless you do something about it.
+
+This library relies on python destructors and signal handlers at the rpc layer to automate this cleanup.  
+
+However, if you use the transport layer directly, there is less support. 
+Calling transport.close() will be fine for graceful exits. 
+There are also destructors on these objects that should be able to rely on a functioning python gc mechanism.
+But you still need applicational hooks for catastrophic errors.  
+The transport layer does not provide them.
+
 ## Examples
 
 Complete working examples are provided in the [`examples/`](examples/) directory:
@@ -295,28 +311,18 @@ Run the [cleanup](util/README.md) utility.
 
 ## Logging
 
-The library uses Python's standard `logging` module. Logs by default at WARNING level.
+The library uses Python's standard `logging` module. The logger inherits configuration from the root logger.
 
-To change logging level :
-```bash
-export SHM_RPC_BRIDGE_LOG_LEVEL=DEBUG
-```
-To change more things than just the level :
 ```python
 import logging
 
-import shm_rpc_bridge
-# now override, AFTER import
+# Configure logging before using the library
+logging.basicConfig(level=logging.DEBUG)
 
-# Enable debug logging
-logging.getLogger("shm_rpc_bridge").setLevel(logging.DEBUG)
-
-# Or configure with a handler for file output
-handler = logging.FileHandler("shm_rpc_bridge.log")
-handler.setFormatter(logging.Formatter(
-    "%(asctime)s - %(process)d - %(name)s - %(levelname)s : %(message)s"
-))
-logging.getLogger("shm_rpc_bridge").addHandler(handler)
+# Or get the library's logger directly
+from shm_rpc_bridge import get_logger
+logger = get_logger()
+logger.setLevel(logging.DEBUG)
 ```
 
 ## Development
@@ -329,7 +335,7 @@ pip install -e ".[dev]"
 ### Other Dependencies
 
 In addition to Python dependencies, workflow validation requires `act`, a tool to run GitHub Actions locally. 
-This is is NOT a Python package and cannot be installed via `pip` or listed in `pyproject.toml`. Each developer must install it separately on their system.
+This is NOT a Python package and cannot be installed via `pip` or listed in `pyproject.toml`. Each developer must install it separately on their system.
 
 See https://nektosact.com/installation/
 

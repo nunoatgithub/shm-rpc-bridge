@@ -8,11 +8,6 @@ that can be called remotely via RPC over shared memory.
 
 from __future__ import annotations
 
-import os
-
-# disable all bridge logging, keep only errors.
-os.environ["SHM_RPC_BRIDGE_LOG_LEVEL"] = "ERROR"
-
 from shm_rpc_bridge import RPCServer
 
 class Accumulator:

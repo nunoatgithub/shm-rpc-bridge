@@ -15,8 +15,6 @@ import os
 
 # Allow access to internal APIs for benchmarking
 os.environ["SHM_RPC_BRIDGE_ALLOW_INTERNALS"] = "true"
-# disable all bridge logging, keep only errors.
-os.environ["SHM_RPC_BRIDGE_LOG_LEVEL"] = "ERROR"
 
 import logging
 import multiprocessing
@@ -27,6 +25,7 @@ from concurrent import futures
 import grpc
 
 from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
+
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

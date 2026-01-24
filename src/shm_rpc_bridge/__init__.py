@@ -2,6 +2,7 @@
 shm-rpc-bridge: RPC bridge using shared memory IPC and POSIX semaphores.
 """
 
+import logging
 from importlib.metadata import version
 
 __version__ = version("shm-rpc-bridge")
@@ -15,6 +16,20 @@ from shm_rpc_bridge.exceptions import (
 )
 from shm_rpc_bridge.server import RPCServer
 
+
+def get_logger() -> logging.Logger:
+    """
+    Get the library's logger instance.
+
+    The logger inherits configuration from the root logger.
+    Configure logging using Python's standard logging API.
+
+    Returns:
+        The logger used by shm-rpc-bridge
+    """
+    return logging.getLogger(__name__)
+
+
 __all__ = [
     "RPCClient",
     "RPCServer",
@@ -22,19 +37,5 @@ __all__ = [
     "RPCTimeoutError",
     "RPCSerializationError",
     "RPCTransportError",
+    "get_logger",
 ]
-
-import logging
-import os
-
-logger = logging.getLogger("shm_rpc_bridge")
-handler = logging.StreamHandler()
-handler.setFormatter(
-    logging.Formatter(
-        "%(asctime)s - %(process)s - %(threadName)s - %(name)s - %(levelname)s : %(message)s"
-    )
-)
-logger.addHandler(handler)
-_log_level = os.environ.get("SHM_RPC_BRIDGE_LOG_LEVEL", "WARNING").upper()
-logger.setLevel(getattr(logging, _log_level, logging.WARNING))
-logger.propagate = False  # Prevent propagation to root logger to avoid duplicate logs
