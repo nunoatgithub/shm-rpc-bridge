@@ -12,7 +12,7 @@ os.environ["SHM_RPC_BRIDGE_LOG_FORMAT"] = (
     "%(asctime)s - %(process)s - %(name)s - %(levelname)s: %(message)s"
 )
 
-from shm_rpc_bridge import RPCServer, get_logger
+from shm_rpc_bridge import RPCServer
 from shm_rpc_bridge.transport.transport_chooser import SharedMemoryTransport
 from shm_rpc_bridge.transport.transport_posix import SharedMemoryTransportPosix
 
@@ -82,7 +82,7 @@ def flush_logs_after_test(request):
     for handler in logging.getLogger().handlers:
         handler.flush()
 
-    logger = get_logger()
+    logger = logging.getLogger("shm_rpc_bridge")
     for handler in logger.handlers:
         handler.flush()
 

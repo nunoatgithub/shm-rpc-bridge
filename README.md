@@ -311,18 +311,22 @@ Run the [cleanup](util/README.md) utility.
 
 ## Logging
 
-The library uses Python's standard `logging` module. The logger inherits configuration from the root logger.
+The library uses Python's standard `logging` module. To configure logging for `shm-rpc-bridge`:
 
 ```python
 import logging
 
-# Configure logging before using the library
-logging.basicConfig(level=logging.DEBUG)
+# Configure the library's logger
+logging.getLogger("shm_rpc_bridge").setLevel(logging.DEBUG)
 
-# Or get the library's logger directly
-from shm_rpc_bridge import get_logger
-logger = get_logger()
-logger.setLevel(logging.DEBUG)
+# Or configure all loggers with basicConfig
+logging.basicConfig(level=logging.INFO)
+
+# Add custom handlers if needed
+logger = logging.getLogger("shm_rpc_bridge")
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s: %(message)s'))
+logger.addHandler(handler)
 ```
 
 ## Development
