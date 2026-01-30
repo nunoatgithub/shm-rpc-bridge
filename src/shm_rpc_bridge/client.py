@@ -100,9 +100,10 @@ class RPCClient:
         self.close()
 
     def __del__(self) -> None:
-        try:
-            self.close()
-        except Exception:
-            logger.warning(
-                "[Client %s]: Exception during RPCClient.__del__", self.name, exc_info=True
-            )
+        if getattr(self, "_transport", None) is not None:
+            try:
+                self.close()
+            except Exception:
+                logger.warning(
+                    "[Client %s]: Exception during RPCClient.__del__", self.name, exc_info=True
+                )
