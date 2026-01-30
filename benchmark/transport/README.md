@@ -1,9 +1,5 @@
 # Transport Layer Benchmarks
 
-This directory contains performance benchmarks comparing SharedMemoryTransportPosix against other byte-level IPC transport implementations.
-
-## Overview
-
 The benchmark script (`transport_benchmark.py`) measures the performance of direct transport layer communication between processes, comparing:
 
 1. **SharedMemoryTransportPosix**: Shared memory with POSIX semaphores (one of the transports used by shm-rpc-bridge)
@@ -59,14 +55,6 @@ MESSAGE_SIZES = {
 BUFFER_SIZE = 2_500_000   # 2.5MB buffer
 TIMEOUT = 10.0            # 10 seconds timeout
 ```
-
-## Metrics Reported
-
-For each transport and message size, the following metrics are reported:
-
-- **Total time**: Total execution time for all iterations
-- **Throughput**: Operations per second (ops/s)
-- **Avg latency**: Average round-trip time per call in microseconds (μs)
 
 ## Example Results
 ```

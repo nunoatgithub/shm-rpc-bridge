@@ -1,9 +1,5 @@
 # SHM-RPC vs gRPC Benchmark
 
-This benchmark compares the performance of the SHM-RPC bridge library against standard gRPC using different transport methods for inter-process communication.
-
-## Overview
-
 The benchmark measures the latency and throughput of simple string echo operations across different message sizes and transport methods:
 
 **Message Sizes:**
@@ -68,17 +64,6 @@ The benchmark will:
 4. Test all three transport methods for each message size
 5. Display detailed performance metrics
 6. Clean up all resources when complete
-
-## What It Tests
-
-## Metrics Reported
-
-For each message size, the following metrics are displayed:
-
-- **Total time**: Time to complete all iterations
-- **Throughput**: Operations per second
-- **Avg latency**: Average time per call in microseconds
-- **Comparison**: Which implementation is faster and by how much
 
 ## Files
 

@@ -1,9 +1,5 @@
 # SHM-RPC Bridge Benchmarks
 
-This directory contains performance benchmarks comparing the SHM-RPC bridge implementation against baseline direct in-memory function calls.
-
-## Overview
-
 The benchmark script (`base_benchmark.py`) measures the performance overhead of using shared memory IPC for RPC communication in two scenarios:
 
 1. **Small Messages**: Simple integer operations (addition)
@@ -53,14 +49,6 @@ You can adjust the iteration counts by modifying these constants in `base_benchm
 NUM_ITERATIONS = 100_000        # Small message iterations
 NUM_ITERATIONS_LARGE = 10_000   # Large message iterations
 ```
-
-## Metrics Reported
-
-For each benchmark, the following metrics are reported:
-
-- **Total time**: Total execution time
-- **Throughput**: Operations per second (ops/s)
-- **Avg latency**: Average time per call in microseconds (μs)
 
 ## Example Results
 ```
