@@ -44,7 +44,7 @@ echo "Running benchmark (this may take several minutes)..."
 echo "======================================================================="
 echo ""
 
-python benchmark/benchmark_ipc.py
+python benchmark/base/base_benchmark.py
 
 echo ""
 echo "======================================================================="

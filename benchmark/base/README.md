@@ -4,7 +4,7 @@ This directory contains performance benchmarks comparing the SHM-RPC bridge impl
 
 ## Overview
 
-The benchmark script (`benchmark_ipc.py`) measures the performance overhead of using shared memory IPC for RPC communication in two scenarios:
+The benchmark script (`base_benchmark.py`) measures the performance overhead of using shared memory IPC for RPC communication in two scenarios:
 
 1. **Small Messages**: Simple integer operations (addition)
 2. **Large Messages**: Complex nested data structures 
@@ -21,7 +21,7 @@ Use the provided script to install dependencies and run the benchmark:
 
 ```bash
 # From the repository root
-./benchmark/run_benchmark.sh
+./base/benchmark/run_benchmark.sh
 ```
 
 This script will:
@@ -36,7 +36,7 @@ Alternatively, you can run it manually:
 ```bash
 # From the repository root
 pip install posix-ipc orjson
-python benchmark/benchmark_ipc.py
+python base/benchmark/base_benchmark.py
 ```
 
 The benchmark will:
@@ -47,7 +47,7 @@ The benchmark will:
 
 ## Configuration
 
-You can adjust the iteration counts by modifying these constants in `benchmark_ipc.py`:
+You can adjust the iteration counts by modifying these constants in `base_benchmark.py`:
 
 ```python
 NUM_ITERATIONS = 100_000        # Small message iterations

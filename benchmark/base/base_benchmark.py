@@ -116,23 +116,18 @@ def benchmark_direct_calls() -> float:
 # Benchmark 2: SHM-RPC Between Processes
 # ==============================================================================
 
-def run_server_process(channel: str, server_ready: multiprocessing.Event) -> None:  # type: ignore
+def run_server_process(channel: str) -> None:  # type: ignore
     """Run RPC server in a separate process."""
 
     server = RPCServer(channel, timeout=10.0)
     service = CalculatorService()
     server.register("add", service.add)
-
-    # Signal that server is ready
-    server_ready.set()
-    # Start server (will run until terminated)
     server.start()
 
 
 def benchmark_processes() -> float:
     """Benchmark RPC calls between processes using shared memory."""
     channel = "bench_small"
-    server_ready: multiprocessing.Event = multiprocessing.Event()  # type: ignore
 
     # Clean up any leftover resources first
     ensure_clean_slate(channel)
@@ -140,23 +135,14 @@ def benchmark_processes() -> float:
     # Start server process
     server_process = multiprocessing.Process(
         target=run_server_process,
-        args=(channel, server_ready),
+        args=(channel,)
     )
     server_process.start()
-
-    # Wait for server to be ready
-    try:
-        server_ready.wait(timeout=5.0)
-    except Exception as e:
-        server_process.terminate()
-        server_process.join()
-        ensure_clean_slate(channel)
-        raise RuntimeError(f"Server failed to start: {e}")
 
     client = None
     try:
         # Create client
-        client = RPCClient(channel, timeout=10.0)
+        client = RPCClient(channel, timeout=10.0, wait_for_server=5.0)
 
         # Benchmark
         start = time.perf_counter()
@@ -198,15 +184,12 @@ def benchmark_large_direct(message_size: str = "large") -> float:
 # Benchmark 4: Large Messages - SHM-RPC Between Processes
 # ==============================================================================
 
-def run_data_server_process(channel: str,
-                            server_ready: multiprocessing.Event) -> None:  # type: ignore
+def run_data_server_process(channel: str) -> None:  # type: ignore
     """Run data processing server in a separate process."""
 
     server = RPCServer(channel, buffer_size=LARGE_MESSAGE_SERIALIZED_SIZE, timeout=10.0)
     service = DataService()
     server.register("process_data", service.process_data)
-
-    server_ready.set()
 
     try:
         server.start()
@@ -217,35 +200,27 @@ def run_data_server_process(channel: str,
 def benchmark_large_processes(message_size: str = "large") -> float:
     """Benchmark RPC with large messages between processes."""
     channel = "bench_large"
-    server_ready: multiprocessing.Event = multiprocessing.Event()  # type: ignore
 
     ensure_clean_slate(channel)
 
     server_process = multiprocessing.Process(
         target=run_data_server_process,
-        args=(channel, server_ready),
+        args=(channel,),
     )
     server_process.start()
-
-    try:
-        server_ready.wait(timeout=5.0)
-    except Exception as e:
-        server_process.terminate()
-        server_process.join()
-        ensure_clean_slate(channel)
-        raise RuntimeError(f"Server failed to start: {e}")
 
     client = None
 
     try:
-        client = RPCClient(channel, buffer_size=LARGE_MESSAGE_SERIALIZED_SIZE, timeout=10.0)
+        client = RPCClient(channel, buffer_size=LARGE_MESSAGE_SERIALIZED_SIZE, timeout=10.0, wait_for_server=5.0)
 
         start = time.perf_counter()
         for _ in range(NUM_ITERATIONS_LARGE):
-            result = client.call("process_data", data=LARGE_MESSAGE)
+            client.call("process_data", data=LARGE_MESSAGE)
         end = time.perf_counter()
 
         return end - start
+
     finally:
         if client:
             try:

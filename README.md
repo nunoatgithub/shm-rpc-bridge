@@ -135,12 +135,12 @@ with RPCClient("my_service") as client:
 
 Some benchmarks are included to help understand performance characteristics.
 
-### IPC Implementation Benchmark
+### RPC Benchmark
 
 Comparison of direct in-memory calls vs this library :
 
 ```bash
-./benchmark/run_benchmark.sh
+./benchmark/base/run_benchmark.sh
 ```
 
 📊 [Full benchmark details →](benchmark/)
@@ -154,6 +154,16 @@ Comparison of this library with gRPC (Unix domain sockets and TCP/IP):
 ```
 
 📊 [Full benchmark details →](benchmark/vs_grpc/)
+
+### transport level Benchmark
+
+Comparison of the transport layer of this library with other byte-level IPC alternatives (e.g. zeromq)
+
+```bash
+./benchmark/transport/run_benchmark.sh
+```
+
+📊 [Full benchmark details →](benchmark/transport/)
 
 ## API Reference
 

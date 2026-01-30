@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 """
-Benchmark comparing SHM-RPC Bridge vs gRPC with Unix Domain Sockets.
-
 Compares performance of lightweight string message RPC calls between processes:
 1. SHM-RPC Bridge (shared memory + POSIX semaphores)
 2. gRPC over Unix Domain Sockets
-
-Both implementations use process-to-process communication.
+3. gRPC over TCP Sockets (using loopback)
 """
 
 from __future__ import annotations
@@ -215,7 +212,7 @@ def benchmark_grpc_tcp(message: str, port: int = 50051) -> float:
 # SHM-RPC Implementation
 # ==============================================================================
 
-def run_shm_rpc_server(channel: str, server_ready: multiprocessing.Event) -> None:  # type: ignore
+def run_shm_rpc_server(channel: str) -> None:  # type: ignore
     """Run SHM-RPC server in a separate process."""
 
     logging.getLogger("shm_rpc_bridge").setLevel(logging.ERROR)
@@ -227,35 +224,22 @@ def run_shm_rpc_server(channel: str, server_ready: multiprocessing.Event) -> Non
         return message
 
     server.register("echo", echo)
-    server_ready.set()
     server.start()
 
 
 def benchmark_shm_rpc(message: str, channel: str) -> float:
     """Benchmark SHM-RPC bridge."""
-    server_ready: multiprocessing.Event = multiprocessing.Event()  # type: ignore
 
     # Start server process
     server_process = multiprocessing.Process(
         target=run_shm_rpc_server,
-        args=(channel, server_ready),
+        args=(channel,),
     )
     server_process.start()
 
-    # Wait for server to be ready
-    try:
-        server_ready.wait(timeout=5.0)
-    except Exception as e:
-        server_process.terminate()
-        server_process.join(5.0)
-        raise RuntimeError(f"SHM-RPC server failed to start: {e}")
-
-    # Give server a moment to fully initialize
-    time.sleep(0.1)
-
     try:
         # Create client
-        client = RPCClient(channel, buffer_size=2_500_000, timeout=10.0)
+        client = RPCClient(channel, buffer_size=2_500_000, timeout=10.0, wait_for_server=5.0)
 
         # Warm-up
         for _ in range(100):
